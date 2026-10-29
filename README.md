@@ -17,7 +17,15 @@ An interval timer that runs fully offline in a phone browser.
 
 ## Technology
 
-Rust compiled to WebAssembly, served as a static Progressive Web App. The UI framework is not chosen yet.
+Rust compiled to WebAssembly, served as a static Progressive Web App. The UI uses Leptos 0.8 and Trunk.
+
+## Development setup
+
+Install these tools per user. They need no `sudo`.
+
+1. Install [rustup](https://rustup.rs). Inside the repository, rustup reads `rust-toolchain.toml` and installs the pinned Rust version, its components and the `wasm32-unknown-unknown` target.
+2. Install Trunk 0.22.1 from its [release page](https://github.com/trunk-rs/trunk/releases). Place the binary in `~/.cargo/bin`.
+3. Check the setup: `rustc --version` and `trunk --version`.
 
 ## Status
 
