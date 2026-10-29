@@ -35,3 +35,7 @@ The shared memory connector is `.memory/config.yml` (key `memory_path`). It poin
 ## Verification
 
 Before a change is finished, run the test or the scenario that covers it. Timer logic must have Rust unit tests with a simulated clock.
+
+## UI conventions
+
+Every UI change follows `docs/design-system.md`. Colours, sizes, radii and durations come from its tokens only. Run its pre-merge checklist before merging any UI change, and update the document when a new token is needed.
