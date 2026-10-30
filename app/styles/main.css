@@ -1,0 +1,101 @@
+:root {
+  /* Neutrals */
+  --color-bg: #0E1116;
+  --color-surface: #171C23;
+  --color-surface-raised: #222933;
+  --color-border: #323B47;
+  --color-text: #F2F5F8;
+  --color-text-muted: #A3AEBB;
+
+  /* Actions */
+  --color-accent: #B44A00;
+  --color-danger: #D5393E;
+  --color-focus: #6FB3FF;
+  --color-success: #2BD58C;
+
+  /* Phases */
+  --phase-prep-bg: #E69F00;
+  --phase-prep-fg: #10151B;
+  --phase-work-bg: #C24E00;
+  --phase-work-fg: #FFFFFF;
+  --phase-rest-bg: #0072B2;
+  --phase-rest-fg: #FFFFFF;
+  --phase-rest-sets-bg: #008063;
+  --phase-rest-sets-fg: #FFFFFF;
+  --phase-cooldown-bg: #56B4E9;
+  --phase-cooldown-fg: #10151B;
+  --phase-paused-bg: #262B33;
+  --phase-paused-fg: #FFFFFF;
+  --phase-done-bg: #0F3D2E;
+  --phase-done-fg: #FFFFFF;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --text-xs: 13px;
+  --text-sm: 16px;
+  --text-md: 20px;
+  --text-lg: 24px;
+  --text-phase: clamp(28px, 8vw, 48px);
+  --text-countdown: clamp(72px, min(30vw, 32dvh), 256px);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-full: 999px;
+
+  /* Control sizes */
+  --size-hero: 96px;
+  --size-hero-landscape: 72px;
+  --size-btn: 64px;
+  --size-ghost: 56px;
+  --size-icon: 48px;
+  --size-row: 80px;
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-phase: 250ms;
+  --ease-standard: cubic-bezier(0, 0, 0.2, 1);
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+main {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+h1 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
