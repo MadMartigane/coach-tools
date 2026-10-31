@@ -19,3 +19,6 @@ dist/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Repository-local toolchain (scripts/bootstrap.sh)
+.tools/
