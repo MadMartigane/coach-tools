@@ -113,7 +113,7 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                     <DurationStepper label="Travail (s)" value=work min=MIN_DURATION_SECONDS />
                     <DurationStepper label="Repos (s)" value=rest min=MIN_DURATION_SECONDS />
                     <DurationStepper label="Cycles par set" value=cycles_per_set min=MIN_COUNT />
-                    <DurationStepper label="Nombre de sets" value=sets min=MIN_COUNT />
+                    <DurationStepper label="Sets" value=sets min=MIN_COUNT />
                     <DurationStepper label="Repos entre sets (s)" value=rest_between_sets min=MIN_DURATION_SECONDS />
                     <DurationStepper label="Retour au calme (s)" value=cool_down min=MIN_DURATION_SECONDS />
                 </div>
@@ -176,6 +176,7 @@ fn DurationStepper(label: &'static str, value: RwSignal<u32>, min: u32) -> impl 
                 </button>
                 <input
                     type="number"
+                    inputmode="numeric"
                     class="stepper-value text-input"
                     aria-label=label
                     min=min
