@@ -1,11 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>coach-tools</title>
+    <meta name="theme-color" content="#0E1116" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.svg" />
+    <link data-trunk rel="copy-file" href="public/manifest.webmanifest" />
+    <link data-trunk rel="copy-file" href="public/sw.js" />
+    <link data-trunk rel="copy-file" href="public/icon-192.svg" />
+    <link data-trunk rel="copy-file" href="public/icon-512.svg" />
+    <link data-trunk rel="copy-file" href="public/icon-maskable-512.svg" />
+    <link data-trunk rel="copy-file" href="public/apple-touch-icon.svg" />
     <link data-trunk rel="css" href="styles/main.css" />
     <link data-trunk rel="rust" data-bin="app" />
   </head>
-  <body></body>
+  <body>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        });
+      }
+    </script>
+  </body>
 </html>
