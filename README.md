@@ -4,7 +4,7 @@ A small web application that groups the tools and utilities a sports coach uses.
 
 ## Tools
 
-### TABATA TIMER (in design)
+### TABATA TIMER
 
 An interval timer that runs fully offline in a phone browser.
 
@@ -17,11 +17,21 @@ An interval timer that runs fully offline in a phone browser.
 
 ## Technology
 
-Rust compiled to WebAssembly, served as a static Progressive Web App. The UI framework is not chosen yet.
+Rust compiled to WebAssembly, served as a static Progressive Web App. The UI uses Leptos 0.8 and Trunk.
+
+## Development setup
+
+Install these tools per user. They need no `sudo`.
+
+1. Install [rustup](https://rustup.rs). Inside the repository, rustup reads `rust-toolchain.toml` and installs the pinned Rust version, its components and the `wasm32-unknown-unknown` target.
+2. Install Trunk 0.22.1 from its [release page](https://github.com/trunk-rs/trunk/releases). Place the binary in `~/.cargo/bin`.
+3. Check the setup: `rustc --version` and `trunk --version`.
+4. Install the task runner once with `cargo install --locked just`. Run `just` to list the recipes in `justfile`.
+5. Run the app with `just dev`, then open the URL Trunk prints. The production bundle is built with `just build` into `app/dist/`.
 
 ## Status
 
-Early stage. The repository holds the project foundations only.
+TABATA TIMER is implemented. It runs offline in the browser once the app has been loaded once.
 
 ## Branches
 
@@ -40,3 +50,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Deployment
+
+The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes.
