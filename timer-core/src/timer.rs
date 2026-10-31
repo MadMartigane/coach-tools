@@ -1,8 +1,10 @@
 //! The timer configuration a user edits before a session starts.
 
+use serde::{Deserialize, Serialize};
+
 /// A TABATA-style interval program. Every duration is a whole number of
 /// seconds, which makes negative durations structurally impossible.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Timer {
     /// Display name of the program.
     pub name: String,
@@ -34,6 +36,35 @@ pub enum InvalidTimer {
 }
 
 impl Timer {
+    /// The program the app starts with before the user edits anything.
+    pub fn default_new() -> Self {
+        Timer {
+            name: String::from("Tabata"),
+            preparation: 10,
+            work: 20,
+            rest: 10,
+            cycles_per_set: 8,
+            sets: 1,
+            rest_between_sets: 0,
+            cool_down: 0,
+        }
+    }
+
+    /// Total session length in whole seconds, computed without building a
+    /// [`Timeline`](crate::timeline::Timeline). Matches `Timeline::build`.
+    pub fn total_duration(&self) -> u64 {
+        let work_cycles = u64::from(self.cycles_per_set) * u64::from(self.work);
+        let rests_in_set = u64::from(self.cycles_per_set.saturating_sub(1)) * u64::from(self.rest);
+        let set_length = work_cycles + rests_in_set;
+        let rests_between_sets =
+            u64::from(self.sets.saturating_sub(1)) * u64::from(self.rest_between_sets);
+
+        u64::from(self.preparation)
+            + u64::from(self.sets) * set_length
+            + rests_between_sets
+            + u64::from(self.cool_down)
+    }
+
     /// Checks the program is usable, returning the first problem found.
     pub fn validate(&self) -> Result<(), InvalidTimer> {
         if self.name.trim().is_empty() {
@@ -52,6 +83,7 @@ impl Timer {
 #[cfg(test)]
 mod tests {
     use super::{InvalidTimer, Timer};
+    use crate::timeline::Timeline;
 
     fn tabata() -> Timer {
         Timer {
@@ -123,5 +155,59 @@ mod tests {
         };
 
         assert_eq!(timer.validate(), Err(InvalidTimer::EmptyName));
+    }
+
+    #[test]
+    fn json_round_trip_preserves_timer() {
+        let timer = Timer {
+            rest_between_sets: 45,
+            cool_down: 30,
+            sets: 3,
+            ..tabata()
+        };
+
+        let json = serde_json::to_string(&timer).unwrap();
+        let restored: Timer = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored, timer);
+    }
+
+    #[test]
+    fn total_duration_matches_timeline() {
+        let timers = [
+            tabata(),
+            Timer {
+                preparation: 15,
+                work: 30,
+                rest: 20,
+                sets: 3,
+                rest_between_sets: 45,
+                cool_down: 30,
+                ..tabata()
+            },
+            Timer {
+                work: 0,
+                ..tabata()
+            },
+            Timer {
+                cycles_per_set: 1,
+                rest: 5,
+                ..tabata()
+            },
+        ];
+
+        for timer in timers {
+            let timeline_total = Timeline::build(&timer).unwrap().total_duration();
+
+            assert_eq!(timer.total_duration(), timeline_total);
+        }
+    }
+
+    #[test]
+    fn default_new_is_tabata_program() {
+        let timer = Timer::default_new();
+
+        assert_eq!(timer, tabata());
+        assert_eq!(timer.validate(), Ok(()));
     }
 }
