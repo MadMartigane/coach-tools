@@ -50,3 +50,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Deployment
+
+The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes.

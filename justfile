@@ -15,6 +15,14 @@ dev-lan:
 build:
     trunk build --release --config app
 
+# Deploy to production. Runs on the production machine only; requires branch main.
+prod:
+    scripts/deploy.sh prod
+
+# Deploy to pre-production. Runs on the production machine only; requires branch develop.
+pre-prod:
+    scripts/deploy.sh pre-prod
+
 # Format all Rust code in place.
 fmt:
     cargo fmt --all
