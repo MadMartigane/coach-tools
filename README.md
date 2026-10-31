@@ -4,7 +4,7 @@ A small web application that groups the tools and utilities a sports coach uses.
 
 ## Tools
 
-### TABATA TIMER (in design)
+### TABATA TIMER
 
 An interval timer that runs fully offline in a phone browser.
 
@@ -31,7 +31,7 @@ Install these tools per user. They need no `sudo`.
 
 ## Status
 
-Early stage. The repository holds the project foundations only.
+TABATA TIMER is implemented. It runs offline in the browser once the app has been loaded once.
 
 ## Branches
 
