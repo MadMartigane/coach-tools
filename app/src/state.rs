@@ -15,7 +15,7 @@ pub enum Screen {
     TimerList,
     /// The editor for a new timer (`index` is `None`) or a saved one.
     Editor { index: Option<usize>, draft: Timer },
-    /// A running session of `timer`.
+    /// A session of `timer`, stopped until the user taps Démarrer.
     Session { timer: Timer },
     /// The completed session of `timer`, which lasted `total_duration` seconds.
     Done { timer: Timer, total_duration: u64 },
@@ -83,10 +83,9 @@ impl AppContext {
         self.screen.set(Screen::TimerList);
     }
 
-    /// Unlocks sound, keeps the screen awake and starts a session of `timer`.
-    pub fn start_session(&self, timer: Timer) {
-        self.sound.unlock();
-        self.wake_lock.acquire();
+    /// Shows the session of `timer`, stopped until the user taps Démarrer.
+    /// The tap that starts it unlocks the sound and acquires the wake lock.
+    pub fn open_session(&self, timer: Timer) {
         self.screen.set(Screen::Session { timer });
     }
 

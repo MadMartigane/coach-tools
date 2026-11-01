@@ -21,9 +21,72 @@
   </head>
   <body>
     <script>
+      const updateBannerId = "update-banner";
+      const updateBannerStyles = `
+        #update-banner { position: fixed; left: 0; right: 0; bottom: 0; text-align: center; padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--color-surface); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-sm); }
+        #update-banner button { display: inline-flex; align-items: center; justify-content: center; min-height: var(--size-icon); padding: 0 var(--space-4); border: none; border-radius: var(--radius-md); background: var(--color-accent); color: var(--color-on-action); font-size: var(--text-md); font-weight: 700; cursor: pointer; }
+        #update-banner button:focus-visible { outline: var(--focus-ring-width) solid var(--color-focus); outline-offset: var(--focus-ring-offset); }
+      `;
+
+      function showUpdateBanner() {
+        if (document.getElementById(updateBannerId) !== null) {
+          return;
+        }
+
+        const styles = document.createElement("style");
+        styles.textContent = updateBannerStyles;
+        document.head.append(styles);
+
+        const banner = document.createElement("div");
+        banner.id = updateBannerId;
+        banner.setAttribute("role", "status");
+
+        const message = document.createElement("span");
+        message.textContent = "Nouvelle version disponible — ";
+
+        const reloadButton = document.createElement("button");
+        reloadButton.type = "button";
+        reloadButton.textContent = "Recharger";
+        reloadButton.addEventListener("click", () => window.location.reload());
+
+        banner.append(message, reloadButton);
+        document.body.append(banner);
+      }
+
+      function watchWorker(worker) {
+        if (worker === null) {
+          return;
+        }
+
+        const check = () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller !== null) {
+            showUpdateBanner();
+          }
+        };
+
+        check();
+        worker.addEventListener("statechange", check);
+      }
+
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./sw.js").catch(() => {});
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((registration) => {
+              watchWorker(registration.installing);
+              if (registration.waiting && navigator.serviceWorker.controller) {
+                showUpdateBanner();
+              }
+              if (
+                registration.active &&
+                navigator.serviceWorker.controller &&
+                registration.active !== navigator.serviceWorker.controller
+              ) {
+                showUpdateBanner();
+              }
+              registration.addEventListener("updatefound", () => watchWorker(registration.installing));
+            })
+            .catch(() => {});
         });
       }
     </script>

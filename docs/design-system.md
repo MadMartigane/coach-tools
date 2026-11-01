@@ -93,7 +93,7 @@ Control heights (minimums, width follows content unless stated):
 
 | Token                  | Value | Applies to                                            |
 |------------------------|-------|-------------------------------------------------------|
-| `--size-hero`          | `96px` | Start / Pause / Resume, full width minus `--space-4` |
+| `--size-hero`          | `96px` | Démarrer / Pause / Reprendre, full width minus `--space-4` |
 | `--size-hero-landscape`| `72px` | Same, in landscape                                    |
 | `--size-btn`           | `64px` | Standard buttons (Save, New timer)                   |
 | `--size-ghost`         | `56px` | Secondary (Modify, End session) and steppers         |
@@ -113,12 +113,17 @@ steps instantly.
 
 ## 5. Component rules
 
-### Controls on a phase screen (Pause / Resume / Rejouer / Accueil)
+### Controls on a phase screen (Démarrer / Pause / Reprendre / Rejouer / Accueil)
 
 Fill with the phase's `-fg` token and label with the phase's `-bg` token
 (the control inverts the phase colours). Every pair already passes 4.5:1 and
 the boundary passes 3:1 by construction. No extra tokens, works on all seven
 states, including light phases where a white button would fail.
+
+The session screen opens stopped: the countdown shows the first phase at its
+full length, the shell stays on `--color-bg`/`--color-text` with the title
+"PRÊT", and the hero reads "Démarrer". That tap starts the session and is the
+gesture that unlocks the sound and acquires the wake lock.
 
 ### Buttons on neutral screens
 

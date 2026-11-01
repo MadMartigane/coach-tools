@@ -19,7 +19,7 @@ build:
 prod:
     scripts/deploy.sh prod
 
-# Deploy to pre-production. Runs on the production machine only; requires branch develop.
+# Deploy to pre-production. Runs on the production machine only; accepts any branch.
 pre-prod:
     scripts/deploy.sh pre-prod
 

@@ -38,7 +38,7 @@ pub fn DoneScreen(timer: Timer, total_duration: u64) -> impl IntoView {
                     <button
                         type="button"
                         class="btn-phase-hero"
-                        on:click=move |_| replay_ctx.start_session(replay_timer.clone())
+                        on:click=move |_| replay_ctx.open_session(replay_timer.clone())
                     >
                         <IconRotateCcw />
                         <span>"Rejouer"</span>
