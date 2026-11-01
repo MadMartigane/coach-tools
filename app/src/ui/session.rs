@@ -152,6 +152,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
     let phase_remaining = move || signals.phase_view.get().map_or(0, |view| view.remaining);
     let set_number = move || signals.phase_view.get().map_or(sets, |view| view.set);
     let cycle_number = move || current_cycle(signals.phase_view.get(), cycles_per_set);
+    let marker_phases = phases.clone();
 
     view! {
         <main class=move || screen_class(signals.state.get(), signals.phase_view.get())>
@@ -197,6 +198,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
                         .into_iter()
                         .map(|phase| progress_segment(phase, signals.elapsed))
                         .collect_view()}
+                    <div class="progress-marker" style=move || progress_marker_style(&marker_phases, signals.elapsed.get())></div>
                 </div>
                 <div class="progress-row-bottom">
                     <div>
@@ -295,4 +297,90 @@ fn progress_segment(phase: Phase, elapsed: RwSignal<u64>) -> impl IntoView {
         phase_color_token(phase.kind)
     );
     view! { <div class=class style=style></div> }
+}
+
+/// The inline `left` of the progress marker. Segments share the track width
+/// minus one gutter per boundary in proportion to their durations, so the
+/// elapsed share of that width plus one gutter per boundary already crossed
+/// gives the position; half the marker width centres the marker on it.
+fn progress_marker_style(phases: &[Phase], elapsed: u64) -> String {
+    let gutters = phases.len().saturating_sub(1);
+    let total: u64 = phases.iter().map(|phase| phase.duration).sum();
+    let ratio = if total == 0 {
+        0.0
+    } else {
+        elapsed as f64 / total as f64
+    };
+    let index = phases
+        .iter()
+        .position(|phase| phase.start + phase.duration > elapsed)
+        .unwrap_or(phases.len().saturating_sub(1));
+    format!(
+        "left: calc((100% - {gutters} * var(--border-thin)) * {ratio:.4} + {index} * var(--border-thin) - var(--size-progress-marker) / 2)"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A 20 s work phase followed by a 10 s rest phase, 30 s in total.
+    fn work_then_rest_phases() -> [Phase; 2] {
+        [
+            Phase {
+                kind: PhaseKind::Work,
+                start: 0,
+                duration: 20,
+                set: 1,
+                cycle: Some(1),
+            },
+            Phase {
+                kind: PhaseKind::Rest,
+                start: 20,
+                duration: 10,
+                set: 1,
+                cycle: Some(1),
+            },
+        ]
+    }
+
+    #[test]
+    fn progress_marker_sits_inside_the_current_segment() {
+        assert_eq!(
+            progress_marker_style(&work_then_rest_phases(), 25),
+            "left: calc((100% - 1 * var(--border-thin)) * 0.8333 + 1 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
+
+    #[test]
+    fn progress_marker_moves_past_the_gutter_at_a_boundary() {
+        assert_eq!(
+            progress_marker_style(&work_then_rest_phases(), 20),
+            "left: calc((100% - 1 * var(--border-thin)) * 0.6667 + 1 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
+
+    #[test]
+    fn progress_marker_clamps_to_the_track_end_at_total() {
+        assert_eq!(
+            progress_marker_style(&work_then_rest_phases(), 30),
+            "left: calc((100% - 1 * var(--border-thin)) * 1.0000 + 1 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
+
+    #[test]
+    fn progress_marker_starts_at_the_track_start() {
+        assert_eq!(
+            progress_marker_style(&work_then_rest_phases(), 0),
+            "left: calc((100% - 1 * var(--border-thin)) * 0.0000 + 0 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
+
+    #[test]
+    fn progress_marker_without_phases_has_no_nan() {
+        assert_eq!(
+            progress_marker_style(&[], 0),
+            "left: calc((100% - 0 * var(--border-thin)) * 0.0000 + 0 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
 }
