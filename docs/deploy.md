@@ -30,10 +30,15 @@ Work through this checklist in order. The scripts do everything not listed here.
    scripts/bootstrap.sh
    ```
    It installs rustup, the Rust version pinned in `rust-toolchain.toml` with its components and the `wasm32-unknown-unknown` target, Trunk 0.22.1 and just 1.59.0, all under `.tools/`. It is safe to run again.
-5. Add this line to your shell startup file (for example `~/.bashrc`), replacing `<repo>` with the absolute path of the clone, and open a new shell:
-   ```sh
-   source <repo>/scripts/env.sh
-   ```
+5. Add the line for your shell to its startup file, replacing `<repo>` with the absolute path of the clone, and open a new shell:
+   - bash, in `~/.bashrc`:
+     ```sh
+     source <repo>/scripts/env.sh
+     ```
+   - fish, in `~/.config/fish/config.fish`:
+     ```fish
+     source <repo>/scripts/env.fish
+     ```
 6. Create the two web roots and give the deploy user write access to them:
    ```sh
    sudo mkdir -p /var/www/marius.click/html/coach-tools /var/www/marius.click/html/coach-tools-preprod

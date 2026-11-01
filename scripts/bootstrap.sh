@@ -76,5 +76,8 @@ echo "Resolved versions:"
 "$CARGO_HOME/bin/just" --version
 
 echo
-echo "Add this line to your shell startup file (for example ~/.bashrc):"
-echo "source $ROOT/scripts/env.sh"
+echo "Add this line to the startup file of your shell, then open a new shell:"
+echo "  bash, in ~/.bashrc:"
+echo "    source $ROOT/scripts/env.sh"
+echo "  fish, in ~/.config/fish/config.fish:"
+echo "    source $ROOT/scripts/env.fish"
