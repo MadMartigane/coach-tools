@@ -99,6 +99,7 @@ Control heights (minimums, width follows content unless stated):
 | `--size-ghost`         | `56px` | Secondary (Modify, End session) and steppers         |
 | `--size-icon`          | `48px` | Icon buttons (back, delete), square                  |
 | `--size-row`           | `80px` | Timer list rows, whole row tappable                  |
+| `--size-progress-marker` | `10px` | Progress marker, width including its outline |
 
 Absolute floor for any target: 48x48px (Material asks 48dp, Apple HIG 44pt,
 WCAG 2.2 AA 2.5.8 asks 24px — this project exceeds all three).
@@ -153,6 +154,15 @@ states, including light phases where a white button would fail.
 - Track: 8px tall, one segment per phase instance, segment width proportional
   to duration, segment fill = phase `-bg` colour. Future and current segments
   full opacity (>= 3:1 vs surface); past segments at 25% opacity.
+- Marker: one pill `--size-progress-marker` wide (outline included),
+  `--color-bg` body with a `--border-thin` `--color-text` outline,
+  `--radius-full`, vertically centred on the track and overshooting it by half
+  `--size-track-height` each side. Its `left` is computed in Rust as the
+  elapsed share of the segment widths plus one `--border-thin` gutter per
+  crossed boundary, so it never drifts from the segment edges. It steps once
+  per second with the elapsed value and is never animated, under normal and
+  reduced motion. The body is >= 3.6:1 on every phase colour and the outline
+  is 13.4:1 on the track surface, so one layer always passes 3:1.
 - Row 2, three columns: elapsed / total / remaining. Values `--text-sm`
   `--color-text`, labels `--text-xs` `--color-text-muted`. Formats `mm:ss`,
   `h:mm:ss` over one hour.
@@ -175,8 +185,12 @@ states, including light phases where a white button would fail.
 - Logo: three vertical rounded bars, tall-short-tall (two efforts around a
   rest): outer bars `--color-text`, middle bar `--phase-cooldown-bg`, on
   `--color-bg`. No gradients, no text in the mark.
-- Manifest icons: 192px, 512px, maskable 512px (mark inside the central 80%
-  circle), apple-touch-icon 180px. `theme_color` `#0E1116`, updated to the
+- Manifest icons ship as opaque PNGs generated from the SVG sources in
+  `app/public/` by `scripts/generate-icons.sh` (ImageMagick, not part of the
+  build): 192px and 512px `purpose: any`, maskable 512px with the mark inside
+  the central 80% circle on an opaque full-bleed background, apple-touch-icon
+  180px, plus `<link rel="icon">` pointing at the 192px PNG. The SVGs are the
+  editable sources and are not shipped. `theme_color` `#0E1116`, updated to the
   phase colour during a session if the platform allows it.
 
 ## 6. Layout rules

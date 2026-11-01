@@ -50,37 +50,127 @@ const WHISTLE_TONES: &[Tone] = &[
     },
 ];
 
-const BELL_TONES: &[Tone] = &[Tone {
-    frequency_hz: 659.25,
-    offset_seconds: 0.0,
-    duration_seconds: 0.38,
-    peak_gain: 0.35,
-    wave: OscillatorType::Triangle,
-}];
+/// Frequency of the prime partial of every bell strike, in hertz.
+const BELL_PRIME_HZ: f32 = 659.25;
 
-const TRIPLE_BELL_TONES: &[Tone] = &[
-    Tone {
-        frequency_hz: 659.25,
-        offset_seconds: 0.0,
-        duration_seconds: 0.18,
-        peak_gain: 0.35,
-        wave: OscillatorType::Triangle,
+/// Number of inharmonic partials in one bell strike.
+const BELL_PARTIAL_COUNT: usize = 5;
+
+/// How one partial of a bell strike scales against the strike it belongs to.
+#[derive(Debug, Clone, Copy)]
+struct BellPartial {
+    frequency_multiplier: f32,
+    duration_multiplier: f64,
+    peak_multiplier: f32,
+}
+
+/// The five inharmonic partials of a bell, in order: hum, prime, tierce, quint and
+/// nominal. Upper partials are shorter and quieter, so the low hum rings longest.
+const BELL_PARTIALS: [BellPartial; BELL_PARTIAL_COUNT] = [
+    BellPartial {
+        frequency_multiplier: 0.5,
+        duration_multiplier: 1.2,
+        peak_multiplier: 0.5,
     },
-    Tone {
-        frequency_hz: 659.25,
-        offset_seconds: 0.22,
-        duration_seconds: 0.18,
-        peak_gain: 0.35,
-        wave: OscillatorType::Triangle,
+    BellPartial {
+        frequency_multiplier: 1.0,
+        duration_multiplier: 1.0,
+        peak_multiplier: 1.0,
     },
-    Tone {
-        frequency_hz: 659.25,
-        offset_seconds: 0.44,
-        duration_seconds: 0.18,
-        peak_gain: 0.35,
-        wave: OscillatorType::Triangle,
+    BellPartial {
+        frequency_multiplier: 1.2,
+        duration_multiplier: 0.8,
+        peak_multiplier: 0.4,
+    },
+    BellPartial {
+        frequency_multiplier: 1.5,
+        duration_multiplier: 0.6,
+        peak_multiplier: 0.3,
+    },
+    BellPartial {
+        frequency_multiplier: 2.0,
+        duration_multiplier: 0.5,
+        peak_multiplier: 0.25,
     },
 ];
+
+/// Builds one bell strike: the five partials of [`BELL_PARTIALS`], all starting at
+/// `offset_seconds`, each scaled from the strike's `duration_seconds` and `peak_gain`.
+const fn bell_strike(
+    offset_seconds: f64,
+    duration_seconds: f64,
+    peak_gain: f32,
+) -> [Tone; BELL_PARTIAL_COUNT] {
+    let strike = Tone {
+        frequency_hz: BELL_PRIME_HZ,
+        offset_seconds,
+        duration_seconds,
+        peak_gain,
+        wave: OscillatorType::Sine,
+    };
+    let mut partials = [strike; BELL_PARTIAL_COUNT];
+    let mut index = 0;
+    while index < BELL_PARTIAL_COUNT {
+        let scaling = BELL_PARTIALS[index];
+        partials[index].frequency_hz = BELL_PRIME_HZ * scaling.frequency_multiplier;
+        partials[index].duration_seconds = duration_seconds * scaling.duration_multiplier;
+        partials[index].peak_gain = peak_gain * scaling.peak_multiplier;
+        index += 1;
+    }
+    partials
+}
+
+/// Length of a Bell strike and of each DoubleBell strike, in seconds.
+const SHORT_STRIKE_SECONDS: f64 = 0.35;
+
+/// Length of each TripleBell strike, in seconds.
+const LONG_STRIKE_SECONDS: f64 = 0.55;
+
+/// Peak gain of a strike's prime partial, shared by every bell strike.
+const STRIKE_PEAK_GAIN: f32 = 0.18;
+
+/// Gap between the two DoubleBell strikes, in seconds.
+const DOUBLE_BELL_SPACING_SECONDS: f64 = 0.30;
+
+/// Gap between the three TripleBell strikes, in seconds.
+const TRIPLE_BELL_SPACING_SECONDS: f64 = 0.45;
+
+/// One short strike: the Bell cue.
+const BELL_TONES: [Tone; BELL_PARTIAL_COUNT] =
+    bell_strike(0.0, SHORT_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
+
+/// Two short strikes: the DoubleBell cue, marking a set the session survives.
+const DOUBLE_BELL_TONES: [Tone; 2 * BELL_PARTIAL_COUNT] = {
+    let first = bell_strike(0.0, SHORT_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
+    let second = bell_strike(
+        DOUBLE_BELL_SPACING_SECONDS,
+        SHORT_STRIKE_SECONDS,
+        STRIKE_PEAK_GAIN,
+    );
+    [
+        first[0], first[1], first[2], first[3], first[4], second[0], second[1], second[2],
+        second[3], second[4],
+    ]
+};
+
+/// Three long strikes: the TripleBell cue, marking the end of the session.
+const TRIPLE_BELL_TONES: [Tone; 3 * BELL_PARTIAL_COUNT] = {
+    let first = bell_strike(0.0, LONG_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
+    let second = bell_strike(
+        TRIPLE_BELL_SPACING_SECONDS,
+        LONG_STRIKE_SECONDS,
+        STRIKE_PEAK_GAIN,
+    );
+    let third = bell_strike(
+        2.0 * TRIPLE_BELL_SPACING_SECONDS,
+        LONG_STRIKE_SECONDS,
+        STRIKE_PEAK_GAIN,
+    );
+    [
+        first[0], first[1], first[2], first[3], first[4], second[0], second[1], second[2],
+        second[3], second[4], third[0], third[1], third[2], third[3], third[4],
+    ]
+};
 
 /// Plays session cues. The audio context must be created inside a user
 /// gesture, so [`SoundPlayer::unlock`] has to run in a Start, Resume or
@@ -135,8 +225,9 @@ fn tones_for(signal: Signal) -> &'static [Tone] {
     match signal {
         Signal::CountdownBeep => COUNTDOWN_BEEP_TONES,
         Signal::Whistle => WHISTLE_TONES,
-        Signal::Bell => BELL_TONES,
-        Signal::TripleBell => TRIPLE_BELL_TONES,
+        Signal::Bell => &BELL_TONES,
+        Signal::DoubleBell => &DOUBLE_BELL_TONES,
+        Signal::TripleBell => &TRIPLE_BELL_TONES,
     }
 }
 
@@ -177,4 +268,87 @@ fn schedule_tone(context: &AudioContext, tone: &Tone) -> Result<(), JsValue> {
     oscillator.start_with_when(start)?;
     oscillator.stop_with_when(end)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Partial frequencies of one bell strike in hum, prime, tierce, quint, nominal order.
+    const EXPECTED_STRIKE_HZ: [f32; BELL_PARTIAL_COUNT] = [329.625, 659.25, 791.1, 988.875, 1318.5];
+
+    /// Tolerance for partial frequencies, which are computed in f32.
+    const FREQUENCY_TOLERANCE_HZ: f32 = 0.001;
+
+    /// Tolerance for cue end times, which add f64 offsets and durations.
+    const END_TOLERANCE_SECONDS: f64 = 1e-9;
+
+    /// Peak gain one strike may use, leaving headroom for the other cues.
+    const PEAK_HEADROOM: f32 = 0.5;
+
+    /// Shortest acceptable session-end cue, in seconds.
+    const SESSION_END_MIN_SECONDS: f64 = 1.5;
+
+    /// Every bell-family cue table, so each rule is checked for all three.
+    fn bell_cues() -> [&'static [Tone]; 3] {
+        [&BELL_TONES, &DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES]
+    }
+
+    #[test]
+    fn bell_tables_hold_one_two_and_three_strikes() {
+        assert_eq!(BELL_TONES.len(), 5);
+        assert_eq!(DOUBLE_BELL_TONES.len(), 10);
+        assert_eq!(TRIPLE_BELL_TONES.len(), 15);
+    }
+
+    #[test]
+    fn bell_tables_are_sorted_by_offset() {
+        for tones in bell_cues() {
+            assert!(
+                tones
+                    .windows(2)
+                    .all(|pair| pair[0].offset_seconds <= pair[1].offset_seconds)
+            );
+        }
+    }
+
+    #[test]
+    fn first_triple_strike_has_exactly_the_bell_partials() {
+        let frequencies: Vec<f32> = TRIPLE_BELL_TONES[..BELL_PARTIAL_COUNT]
+            .iter()
+            .map(|tone| tone.frequency_hz)
+            .collect();
+        assert_eq!(frequencies.len(), EXPECTED_STRIKE_HZ.len());
+        for (actual, expected) in frequencies.into_iter().zip(EXPECTED_STRIKE_HZ) {
+            assert!(
+                (actual - expected).abs() < FREQUENCY_TOLERANCE_HZ,
+                "expected {expected} Hz, got {actual} Hz"
+            );
+        }
+    }
+
+    #[test]
+    fn every_strike_stays_under_peak_gain_headroom() {
+        for tones in bell_cues() {
+            for strike in tones.chunks(BELL_PARTIAL_COUNT) {
+                let peak_sum: f32 = strike.iter().map(|tone| tone.peak_gain).sum();
+                assert!(peak_sum <= PEAK_HEADROOM, "strike peaks sum to {peak_sum}");
+            }
+        }
+    }
+
+    #[test]
+    fn triple_bell_tail_outlasts_the_strike_spacing() {
+        let cue_end_seconds = TRIPLE_BELL_TONES
+            .iter()
+            .map(|tone| tone.offset_seconds + tone.duration_seconds)
+            .fold(0.0, f64::max);
+        let last_strike_offset_seconds = 2.0 * TRIPLE_BELL_SPACING_SECONDS;
+        let hum_tail_seconds = LONG_STRIKE_SECONDS * BELL_PARTIALS[0].duration_multiplier;
+        assert!(cue_end_seconds >= SESSION_END_MIN_SECONDS);
+        assert!(
+            (cue_end_seconds - (last_strike_offset_seconds + hum_tail_seconds)).abs()
+                < END_TOLERANCE_SECONDS
+        );
+    }
 }

@@ -40,7 +40,9 @@ pub enum Signal {
     Whistle,
     /// End of a work cycle that is not the last one of its set.
     Bell,
-    /// End of the last work cycle of a set.
+    /// End of the last work cycle of a set when the session continues with a rest between sets or a cool-down.
+    DoubleBell,
+    /// End of the session, after its last phase.
     TripleBell,
     /// One countdown second before a phase ends.
     CountdownBeep,
@@ -91,12 +93,14 @@ impl Timeline {
                     let work =
                         timeline.push_phase(PhaseKind::Work, timer.work.into(), set, Some(cycle));
                     timeline.push_signal(Signal::Whistle, work.start);
-                    let end_signal = if cycle == timer.cycles_per_set {
-                        Signal::TripleBell
-                    } else {
-                        Signal::Bell
-                    };
-                    timeline.push_signal(end_signal, work.end());
+                    // A set that ends the session pushes no cue here; TripleBell
+                    // marks the session end after the loop.
+                    let session_continues = set < timer.sets || timer.cool_down > 0;
+                    if cycle < timer.cycles_per_set {
+                        timeline.push_signal(Signal::Bell, work.end());
+                    } else if session_continues {
+                        timeline.push_signal(Signal::DoubleBell, work.end());
+                    }
                 }
 
                 let rests_before_next_cycle = cycle < timer.cycles_per_set;
@@ -123,6 +127,11 @@ impl Timeline {
             if is_last_set && timer.cool_down > 0 {
                 timeline.push_phase(PhaseKind::CoolDown, timer.cool_down.into(), set, None);
             }
+        }
+
+        let total_duration = timer.total_duration();
+        if total_duration > 0 {
+            timeline.push_signal(Signal::TripleBell, total_duration);
         }
 
         Ok(timeline.finish())
@@ -335,13 +344,6 @@ mod tests {
             .filter(|phase| phase.cycle != Some(timer.cycles_per_set))
             .map(|phase| phase.start + phase.duration)
             .collect();
-        let last_work_ends: Vec<u64> = timeline
-            .phases()
-            .iter()
-            .filter(|phase| phase.kind == PhaseKind::Work)
-            .filter(|phase| phase.cycle == Some(timer.cycles_per_set))
-            .map(|phase| phase.start + phase.duration)
-            .collect();
 
         assert_eq!(occurrences(signals, Signal::Whistle), work_starts);
         assert_eq!(occurrences(signals, Signal::Whistle).len(), 6);
@@ -350,8 +352,10 @@ mod tests {
             first_and_second_work_ends
         );
         assert_eq!(occurrences(signals, Signal::Bell).len(), 4);
-        assert_eq!(occurrences(signals, Signal::TripleBell), last_work_ends);
-        assert_eq!(occurrences(signals, Signal::TripleBell).len(), 2);
+        // Set 1 ends at 85 and a rest between sets follows.
+        assert_eq!(occurrences(signals, Signal::DoubleBell), vec![85]);
+        assert_eq!(occurrences(signals, Signal::TripleBell), vec![195]);
+        assert_eq!(timeline.total_duration(), 195);
     }
 
     #[test]
@@ -430,6 +434,9 @@ mod tests {
             signal: Signal::Whistle,
             at: 20
         }));
+
+        assert!(occurrences(signals, Signal::DoubleBell).is_empty());
+        assert_eq!(occurrences(signals, Signal::TripleBell), vec![40]);
     }
 
     #[test]
@@ -450,5 +457,29 @@ mod tests {
         assert!(timeline.phases().is_empty());
         assert!(timeline.signals().is_empty());
         assert_eq!(timeline.total_duration(), 0);
+    }
+
+    #[test]
+    fn session_end_fires_once_at_real_end_after_cooldown() {
+        let timeline = Timeline::build(&full_program()).expect("valid timer");
+        let signals = timeline.signals();
+
+        // Set 1 ends at 60 with a rest between sets, set 2 ends at 140 with the cool-down.
+        assert_eq!(occurrences(signals, Signal::DoubleBell), vec![60, 140]);
+        assert_eq!(occurrences(signals, Signal::TripleBell), vec![155]);
+        assert_eq!(timeline.total_duration(), 155);
+        assert!(signals.iter().all(|event| {
+            event.signal != Signal::TripleBell || event.at == timeline.total_duration()
+        }));
+    }
+
+    #[test]
+    fn single_set_without_cool_down_skips_set_end() {
+        let timeline = Timeline::build(&Timer::default_new()).expect("valid timer");
+        let signals = timeline.signals();
+
+        assert!(occurrences(signals, Signal::DoubleBell).is_empty());
+        assert_eq!(occurrences(signals, Signal::Bell).len(), 7);
+        assert_eq!(occurrences(signals, Signal::TripleBell), vec![240]);
     }
 }

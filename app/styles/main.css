@@ -70,6 +70,7 @@
   --size-logo-mark: 32px;
   --size-done-icon: 64px;
   --size-track-height: 8px;
+  --size-progress-marker: 10px;
   --size-container-max: 560px;
   --landscape-max-height: 500px;
 
@@ -576,6 +577,7 @@ input:focus-visible {
 }
 
 .progress-track {
+  position: relative;
   height: var(--size-track-height);
   display: flex;
   gap: var(--border-thin);
@@ -593,6 +595,16 @@ input:focus-visible {
 
 .progress-segment-past {
   opacity: 0.25;
+}
+
+.progress-marker {
+  position: absolute;
+  top: calc(var(--size-track-height) / -2);
+  bottom: calc(var(--size-track-height) / -2);
+  width: var(--size-progress-marker);
+  background: var(--color-bg);
+  border: var(--border-thin) solid var(--color-text);
+  border-radius: var(--radius-full);
 }
 
 .progress-row-bottom {

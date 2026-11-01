@@ -185,6 +185,13 @@ mod tests {
         }
     }
 
+    fn double_bell(at: u64) -> SignalEvent {
+        SignalEvent {
+            signal: Signal::DoubleBell,
+            at,
+        }
+    }
+
     fn triple_bell(at: u64) -> SignalEvent {
         SignalEvent {
             signal: Signal::TripleBell,
@@ -241,9 +248,10 @@ mod tests {
                 cycle: None,
             })
         );
-        assert_eq!(session.poll_signals(), vec![triple_bell(30)]);
+        assert_eq!(session.poll_signals(), vec![double_bell(30)]);
 
         clock.advance(15);
+        assert_eq!(session.poll_signals(), vec![triple_bell(45)]);
         assert_eq!(session.state(), SessionState::Finished);
         assert_eq!(session.current_phase(), None);
         assert_eq!(session.elapsed(), 45);

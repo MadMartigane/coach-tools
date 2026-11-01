@@ -3,10 +3,10 @@ const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icon-192.svg",
-  "./icon-512.svg",
-  "./icon-maskable-512.svg",
-  "./apple-touch-icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable-512.png",
+  "./apple-touch-icon.png",
 ];
 const HASHED_ASSET_PATTERN = /(?:href|src|module_or_path:\s*['"])(\/[^'"]+\.(?:wasm|js|css))/g;
 
