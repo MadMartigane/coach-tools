@@ -1,4 +1,5 @@
-//! The active session screen: the countdown of the current phase, the hero
+//! The session screen: the timer stopped on the ready screen until the hero
+//! Démarrer starts it, then the countdown of the current phase, the hero
 //! Pause/Resume and two-tap Stop controls, and the progress strip.
 
 use std::cell::RefCell;
@@ -27,6 +28,9 @@ const TICK_INTERVAL_MILLIS: u64 = 250;
 /// Phase title shown while the session is paused.
 const PAUSED_PHASE_TITLE: &str = "PAUSE";
 
+/// Phase title shown before the user starts the session.
+const READY_PHASE_TITLE: &str = "PRÊT";
+
 /// The cycle number shown during the preparation, which precedes cycle 1.
 const FIRST_CYCLE: u32 = 1;
 
@@ -39,13 +43,15 @@ struct SessionSignals {
     remaining_total: RwSignal<u64>,
 }
 
-/// Runs `timer` from the first second, with the countdown of each phase.
+/// Shows `timer` stopped on the ready screen; the hero Démarrer button runs it.
 #[component]
 pub fn SessionScreen(timer: Timer) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
     let session = Rc::new(RefCell::new(
         Session::new(&timer, BrowserClock::new()).expect("saved timers are validated on load"),
     ));
+    // The session stays frozen at zero until the user taps Démarrer.
+    session.borrow_mut().pause();
     let phases: Vec<Phase> = session.borrow().timeline().phases().to_vec();
     let total_duration = timer.total_duration();
     let cycles_per_set = timer.cycles_per_set;
@@ -53,7 +59,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
     let title = timer.name.clone();
 
     let signals = SessionSignals {
-        state: RwSignal::new(SessionState::Running),
+        state: RwSignal::new(SessionState::Paused),
         phase_view: RwSignal::new(None),
         elapsed: RwSignal::new(0),
         remaining_total: RwSignal::new(total_duration),
@@ -62,6 +68,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
     let visibility_listener = StoredValue::new(None::<WindowListenerHandle>);
     let pending_stop_reset = StoredValue::new(None::<TimeoutHandle>);
     let confirm_stop = RwSignal::new(false);
+    let started = RwSignal::new(false);
 
     let tick = {
         let session = Rc::clone(&session);
@@ -82,39 +89,53 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
     if advance(&session, &ctx.sound, signals) == SessionState::Finished {
         ctx.finish_session(timer.clone(), 0);
     } else {
-        let tick_on_interval = Rc::clone(&tick);
-        let handle = set_interval_with_handle(
-            move || tick_on_interval(),
-            Duration::from_millis(TICK_INTERVAL_MILLIS),
-        )
-        .ok();
-        interval.set_value(handle);
-
-        let tick_on_visible = Rc::clone(&tick);
-        let wake_lock_ctx = ctx.clone();
-        let listener = window_event_listener_untyped("visibilitychange", move |_| {
-            let visible = document().visibility_state() == VisibilityState::Visible;
-            if visible && signals.state.get_untracked() != SessionState::Finished {
-                wake_lock_ctx.wake_lock.acquire();
-                tick_on_visible();
-            }
-        });
-        visibility_listener.set_value(Some(listener));
+        // The ready screen keeps the shell theme; the Démarrer tap starts the
+        // clocks and the session takes the phase colours from there.
+        set_theme_color(THEME_BG);
     }
 
-    let toggle_pause = {
+    let hero_click = {
         let session = Rc::clone(&session);
         let ctx = ctx.clone();
         let tick = Rc::clone(&tick);
         move |_| {
-            let is_paused = session.borrow().state() == SessionState::Paused;
-            if is_paused {
+            if !started.get_untracked() {
+                // Web Audio needs a user gesture: unlock inside this tap, keep
+                // the screen awake for the run and start the clocks.
                 ctx.sound.unlock();
+                ctx.wake_lock.acquire();
                 session.borrow_mut().resume();
+                started.set(true);
+
+                let tick_on_interval = Rc::clone(&tick);
+                let handle = set_interval_with_handle(
+                    move || tick_on_interval(),
+                    Duration::from_millis(TICK_INTERVAL_MILLIS),
+                )
+                .ok();
+                interval.set_value(handle);
+
+                let tick_on_visible = Rc::clone(&tick);
+                let wake_lock_ctx = ctx.clone();
+                let listener = window_event_listener_untyped("visibilitychange", move |_| {
+                    let visible = document().visibility_state() == VisibilityState::Visible;
+                    if visible && signals.state.get_untracked() != SessionState::Finished {
+                        wake_lock_ctx.wake_lock.acquire();
+                        tick_on_visible();
+                    }
+                });
+                visibility_listener.set_value(Some(listener));
+                tick();
             } else {
-                session.borrow_mut().pause();
+                let is_paused = session.borrow().state() == SessionState::Paused;
+                if is_paused {
+                    ctx.sound.unlock();
+                    session.borrow_mut().resume();
+                } else {
+                    session.borrow_mut().pause();
+                }
+                tick();
             }
-            tick();
         }
     };
 
@@ -148,14 +169,19 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
         set_theme_color(THEME_BG);
     });
 
-    let phase_title_text = move || phase_title(signals.state.get(), signals.phase_view.get());
+    let phase_title_text =
+        move || phase_title(started.get(), signals.state.get(), signals.phase_view.get());
     let phase_remaining = move || signals.phase_view.get().map_or(0, |view| view.remaining);
     let set_number = move || signals.phase_view.get().map_or(sets, |view| view.set);
     let cycle_number = move || current_cycle(signals.phase_view.get(), cycles_per_set);
     let marker_phases = phases.clone();
 
     view! {
-        <main class=move || screen_class(signals.state.get(), signals.phase_view.get())>
+        <main
+            class=move || {
+                screen_class(started.get(), signals.state.get(), signals.phase_view.get())
+            }
+        >
             <header class="session-header">
                 <LogoMark />
                 <span class="session-title">{title}</span>
@@ -167,12 +193,13 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
                     <p class="countdown-digits">{move || format_mm_ss(phase_remaining())}</p>
                 </div>
                 <div class="session-controls">
-                    <button type="button" class="btn-phase-hero" on:click=toggle_pause>
+                    <button type="button" class="btn-phase-hero" on:click=hero_click>
                         {move || {
-                            if signals.state.get() == SessionState::Paused {
-                                view! { <IconPlay /><span>"Reprendre"</span> }.into_any()
+                            let text = hero_text(started.get(), signals.state.get());
+                            if started.get() && signals.state.get() != SessionState::Paused {
+                                view! { <IconPause /><span>{text}</span> }.into_any()
                             } else {
-                                view! { <IconPause /><span>"Pause"</span> }.into_any()
+                                view! { <IconPlay /><span>{text}</span> }.into_any()
                             }
                         }}
                     </button>
@@ -240,8 +267,12 @@ fn advance(
     state
 }
 
-/// The root class of the session screen, which sets the phase colours.
-fn screen_class(state: SessionState, phase: Option<PhaseView>) -> &'static str {
+/// The root class of the session screen, which sets the phase colours. The
+/// ready screen, before the first tap, uses the neutral shell colours.
+fn screen_class(started: bool, state: SessionState, phase: Option<PhaseView>) -> &'static str {
+    if !started {
+        return "session-screen phase-ready";
+    }
     match (state, phase.map(|view| view.kind)) {
         (SessionState::Paused, _) => "session-screen phase-paused",
         (SessionState::Finished, _) => "session-screen phase-done",
@@ -256,11 +287,27 @@ fn screen_class(state: SessionState, phase: Option<PhaseView>) -> &'static str {
     }
 }
 
-/// The title above the countdown: the phase name, or `PAUSE` while paused.
-fn phase_title(state: SessionState, phase: Option<PhaseView>) -> &'static str {
+/// The title above the countdown: `PRÊT` before the start, the phase name
+/// while running, `PAUSE` while paused.
+fn phase_title(started: bool, state: SessionState, phase: Option<PhaseView>) -> &'static str {
+    if !started {
+        return READY_PHASE_TITLE;
+    }
     match state {
         SessionState::Paused => PAUSED_PHASE_TITLE,
         _ => phase.map_or("", |view| phase_label(view.kind)),
+    }
+}
+
+/// The text of the hero button: `Démarrer` before the start, then `Pause`
+/// while running and `Reprendre` while paused.
+fn hero_text(started: bool, state: SessionState) -> &'static str {
+    if !started {
+        "Démarrer"
+    } else if state == SessionState::Paused {
+        "Reprendre"
+    } else {
+        "Pause"
     }
 }
 
@@ -381,6 +428,27 @@ mod tests {
         assert_eq!(
             progress_marker_style(&[], 0),
             "left: calc((100% - 0 * var(--border-thin)) * 0.0000 + 0 * var(--border-thin) - var(--size-progress-marker) / 2)"
+        );
+    }
+
+    #[test]
+    fn ready_screen_shows_demarrer_and_the_neutral_shell() {
+        assert_eq!(hero_text(false, SessionState::Paused), "Démarrer");
+        assert_eq!(phase_title(false, SessionState::Paused, None), "PRÊT");
+        assert_eq!(
+            screen_class(false, SessionState::Paused, None),
+            "session-screen phase-ready"
+        );
+    }
+
+    #[test]
+    fn started_screen_switches_between_pause_and_reprendre() {
+        assert_eq!(hero_text(true, SessionState::Running), "Pause");
+        assert_eq!(hero_text(true, SessionState::Paused), "Reprendre");
+        assert_eq!(phase_title(true, SessionState::Paused, None), "PAUSE");
+        assert_eq!(
+            screen_class(true, SessionState::Paused, None),
+            "session-screen phase-paused"
         );
     }
 }

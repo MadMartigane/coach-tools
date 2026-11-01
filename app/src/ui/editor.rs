@@ -66,7 +66,7 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
     let start = move |_| {
         let timer = draft.get_untracked();
         if timer.total_duration() > 0 && start_ctx.save_editor(index, timer.clone()).is_ok() {
-            start_ctx.start_session(timer);
+            start_ctx.open_session(timer);
         }
     };
     let delete = move |_| {

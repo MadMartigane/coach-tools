@@ -1,4 +1,5 @@
-//! The home screen: the saved timers, each one tap away from a session.
+//! The home screen: the saved timers, one tap from their stopped session
+//! screen; the Démarrer button launches the session.
 
 use leptos::prelude::*;
 use timer_core::{Timer, format_timer_summary};
@@ -66,7 +67,7 @@ fn timer_row(index: usize, timer: Timer) -> impl IntoView {
                 class="timer-row-main"
                 on:click=move |_| {
                     if session_timer.total_duration() > 0 {
-                        ctx.start_session(session_timer.clone());
+                        ctx.open_session(session_timer.clone());
                     }
                 }
             >
