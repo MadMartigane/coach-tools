@@ -52,7 +52,8 @@ resolve_target() {
       ;;
     pre-prod)
       BASE_PATH="/coach-tools-preprod/"
-      REQUIRED_BRANCH="develop"
+      # Pre-production accepts any branch (feature branches included); production stays on main.
+      REQUIRED_BRANCH=""
       CACHE_TARGET="preprod"
       DEST="/var/www/marius.click/html/coach-tools-preprod"
       ;;
@@ -64,6 +65,10 @@ resolve_target() {
 }
 
 check_branch() {
+  # An empty REQUIRED_BRANCH means the target accepts any branch.
+  if [[ -z "$REQUIRED_BRANCH" ]]; then
+    return
+  fi
   local current_branch
   current_branch="$(git rev-parse --abbrev-ref HEAD)"
   if [[ "$current_branch" != "$REQUIRED_BRANCH" ]]; then

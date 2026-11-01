@@ -7,7 +7,7 @@ Targets:
 | Target    | Recipe            | Branch    | URL                                  | Web root                                              |
 |-----------|-------------------|-----------|--------------------------------------|-------------------------------------------------------|
 | Production | `just prod`      | `main`    | `https://marius.click/coach-tools/`  | `/var/www/marius.click/html/coach-tools`              |
-| Pre-production | `just pre-prod` | `develop` | `https://marius.click/coach-tools-preprod/` | `/var/www/marius.click/html/coach-tools-preprod` |
+| Pre-production | `just pre-prod` | any branch | `https://marius.click/coach-tools-preprod/` | `/var/www/marius.click/html/coach-tools-preprod` |
 
 ## First-time setup on the production machine
 
@@ -20,10 +20,10 @@ Work through this checklist in order. The scripts do everything not listed here.
    ```sh
    git clone <repository-url> ~/coach-tools
    ```
-3. Choose the branch for this machine. Production uses `main`, pre-production uses `develop`. A machine can have both targets, but each deploy checks out the branch it needs before you run it:
+3. Choose the branch for this machine. Production deploys from `main`; pre-production deploys from any branch, so it can publish a feature branch for review. A machine can have both targets, but a production deploy requires the `main` branch to be checked out before you run it:
    ```sh
    cd ~/coach-tools
-   git checkout main      # or: git checkout develop
+   git checkout main      # required only for `just prod`
    ```
 4. Install the toolchain into the repository:
    ```sh
@@ -62,13 +62,13 @@ just pre-prod    # builds the develop branch and publishes it to /coach-tools-pr
 
 Each recipe calls `scripts/deploy.sh <target>`, which:
 
-1. stops unless the current branch is the required one (`main` or `develop`) and the working tree is clean;
+1. stops unless the current branch is the required one (`main` for `prod`; pre-production accepts any branch) and the working tree is clean;
 2. builds the app with `trunk build --release --config app --public-url <base>`;
 3. checks that `app/dist/index.html` references the base path;
 4. sets a new service worker cache name in `app/dist/sw.js`;
 5. syncs `app/dist/` into the web root with `rsync --delete`, or stages a copy inside the web root and swaps the files in place before pruning old assets when `rsync` is missing.
 
-Before a deploy, switch to the branch you want to publish, for example `git checkout develop && git pull` for pre-production. Then run the recipe.
+Before a deploy, check out the branch you want to publish, for example a feature branch for pre-production, `git checkout main && git pull` for production. Then run the recipe.
 
 To check what a deploy would do without building or touching the web root:
 
