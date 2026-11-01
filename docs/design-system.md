@@ -175,8 +175,12 @@ states, including light phases where a white button would fail.
 - Logo: three vertical rounded bars, tall-short-tall (two efforts around a
   rest): outer bars `--color-text`, middle bar `--phase-cooldown-bg`, on
   `--color-bg`. No gradients, no text in the mark.
-- Manifest icons: 192px, 512px, maskable 512px (mark inside the central 80%
-  circle), apple-touch-icon 180px. `theme_color` `#0E1116`, updated to the
+- Manifest icons ship as opaque PNGs generated from the SVG sources in
+  `app/public/` by `scripts/generate-icons.sh` (ImageMagick, not part of the
+  build): 192px and 512px `purpose: any`, maskable 512px with the mark inside
+  the central 80% circle on an opaque full-bleed background, apple-touch-icon
+  180px, plus `<link rel="icon">` pointing at the 192px PNG. The SVGs are the
+  editable sources and are not shipped. `theme_color` `#0E1116`, updated to the
   phase colour during a session if the platform allows it.
 
 ## 6. Layout rules
