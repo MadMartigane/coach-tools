@@ -253,3 +253,43 @@ Don't:
 10. Destructive and session-ending flows still require two taps.
 11. Numeric displays use tabular-nums: no width jitter from 9 to 10.
 12. The change introduces no new screen structure outside section 6.
+
+## 9. Signaux sonores
+
+Every cue is synthesized with Web Audio oscillators; the app ships no audio
+files. Five cues exist, built from two sounds: the 880 Hz beep and the six-tone
+whistle motif.
+
+### The beep
+
+`COUNTDOWN_BEEP` is one 880 Hz sine of 0.10 s. It sounds:
+
+- at 3, 2 and 1 seconds before every work-cycle start, whatever phase
+  precedes it, and never before session second 0;
+- once 1 second before every work-cycle end.
+
+A beep sounds once per second: when a pre-beep and a mono beep fall on the
+same second, only one is heard.
+
+### The whistle
+
+The Whistle fires at every work-cycle start, after the pre-beeps. It is the
+motif below, played once.
+
+### The bell family
+
+The whistle motif is six sine tones in two bursts lasting 0.26 s, and it is
+the whole bell family. Every member repeats that one motif:
+
+| Cue           | Trigger                                  | Shape                                              |
+|---------------|------------------------------------------|----------------------------------------------------|
+| `Bell`        | end of every work cycle but the last     | one motif                                          |
+| `TripleBell`  | end of the last work cycle of the session | three motifs, 0.20 s of silence between motifs    |
+| `DoubleBell`  | end of the cool-down, with no beep before it | two motifs, 0.20 s of silence between motifs   |
+
+No bell strike remains: all three cues share the whistle timbre.
+
+### Unlocking audio
+
+Web Audio needs a user gesture. The AudioContext is created or resumed inside
+the Démarrer or Reprendre tap, so no cue can sound before that tap.
