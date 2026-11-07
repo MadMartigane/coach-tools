@@ -120,7 +120,7 @@ const fn bell_strike(
     partials
 }
 
-/// Length of a Bell strike and of each DoubleBell strike, in seconds.
+/// Length of each DoubleBell strike, in seconds.
 const SHORT_STRIKE_SECONDS: f64 = 0.35;
 
 /// Length of each TripleBell strike, in seconds.
@@ -135,9 +135,55 @@ const DOUBLE_BELL_SPACING_SECONDS: f64 = 0.30;
 /// Gap between the three TripleBell strikes, in seconds.
 const TRIPLE_BELL_SPACING_SECONDS: f64 = 0.45;
 
-/// One short strike: the Bell cue.
-const BELL_TONES: [Tone; BELL_PARTIAL_COUNT] =
-    bell_strike(0.0, SHORT_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
+/// Double short whistle approximating a pea whistle, for the end of a work cycle.
+/// Two short bursts with rapid interruptions simulated by sequential tones.
+const BELL_TONES: &[Tone] = &[
+    // First burst
+    Tone {
+        frequency_hz: 2900.0,
+        offset_seconds: 0.0,
+        duration_seconds: 0.045,
+        peak_gain: 0.38,
+        wave: OscillatorType::Sine,
+    },
+    Tone {
+        frequency_hz: 3050.0,
+        offset_seconds: 0.04,
+        duration_seconds: 0.04,
+        peak_gain: 0.36,
+        wave: OscillatorType::Sine,
+    },
+    Tone {
+        frequency_hz: 2950.0,
+        offset_seconds: 0.075,
+        duration_seconds: 0.035,
+        peak_gain: 0.32,
+        wave: OscillatorType::Sine,
+    },
+    // Short silence
+    // Second burst
+    Tone {
+        frequency_hz: 3200.0,
+        offset_seconds: 0.165,
+        duration_seconds: 0.04,
+        peak_gain: 0.40,
+        wave: OscillatorType::Sine,
+    },
+    Tone {
+        frequency_hz: 3350.0,
+        offset_seconds: 0.20,
+        duration_seconds: 0.035,
+        peak_gain: 0.35,
+        wave: OscillatorType::Sine,
+    },
+    Tone {
+        frequency_hz: 3100.0,
+        offset_seconds: 0.23,
+        duration_seconds: 0.03,
+        peak_gain: 0.28,
+        wave: OscillatorType::Sine,
+    },
+];
 
 /// Two short strikes: the DoubleBell cue, marking a set the session survives.
 const DOUBLE_BELL_TONES: [Tone; 2 * BELL_PARTIAL_COUNT] = {
@@ -225,7 +271,7 @@ fn tones_for(signal: Signal) -> &'static [Tone] {
     match signal {
         Signal::CountdownBeep => COUNTDOWN_BEEP_TONES,
         Signal::Whistle => WHISTLE_TONES,
-        Signal::Bell => &BELL_TONES,
+        Signal::Bell => BELL_TONES,
         Signal::DoubleBell => &DOUBLE_BELL_TONES,
         Signal::TripleBell => &TRIPLE_BELL_TONES,
     }
@@ -289,14 +335,13 @@ mod tests {
     /// Shortest acceptable session-end cue, in seconds.
     const SESSION_END_MIN_SECONDS: f64 = 1.5;
 
-    /// Every bell-family cue table, so each rule is checked for all three.
+    /// The Bell, DoubleBell and TripleBell cue tables.
     fn bell_cues() -> [&'static [Tone]; 3] {
-        [&BELL_TONES, &DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES]
+        [BELL_TONES, &DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES]
     }
 
     #[test]
-    fn bell_tables_hold_one_two_and_three_strikes() {
-        assert_eq!(BELL_TONES.len(), 5);
+    fn double_and_triple_bell_tables_hold_two_and_three_strikes() {
         assert_eq!(DOUBLE_BELL_TONES.len(), 10);
         assert_eq!(TRIPLE_BELL_TONES.len(), 15);
     }
@@ -329,7 +374,8 @@ mod tests {
 
     #[test]
     fn every_strike_stays_under_peak_gain_headroom() {
-        for tones in bell_cues() {
+        let strike_cues: [&[Tone]; 2] = [&DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES];
+        for tones in strike_cues {
             for strike in tones.chunks(BELL_PARTIAL_COUNT) {
                 let peak_sum: f32 = strike.iter().map(|tone| tone.peak_gain).sum();
                 assert!(peak_sum <= PEAK_HEADROOM, "strike peaks sum to {peak_sum}");
