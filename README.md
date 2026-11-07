@@ -12,7 +12,7 @@ An interval timer that runs fully offline in a phone browser.
 - Each timer defines, in order: preparation, work, rest, cycles per set, sets, rest between sets, cool-down.
 - Portrait layout, large countdown, phase title and background colour per phase.
 - Bottom progress bar: current phase, total cycles, elapsed time, remaining time, total duration.
-- Sound cues for each phase change: a double whistle blast ends each work cycle, and bell strikes end each set and the session.
+- Sound cues: three beeps then a whistle lead into every work cycle; one beep then a whistle blast ends each work cycle but the last, which ends with three blasts; the cool-down ends with two blasts.
 - The screen stays on during the whole session, pauses included, while the browser allows it.
 
 ## Technology
