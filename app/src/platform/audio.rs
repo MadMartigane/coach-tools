@@ -50,94 +50,9 @@ const WHISTLE_TONES: &[Tone] = &[
     },
 ];
 
-/// Frequency of the prime partial of every bell strike, in hertz.
-const BELL_PRIME_HZ: f32 = 659.25;
-
-/// Number of inharmonic partials in one bell strike.
-const BELL_PARTIAL_COUNT: usize = 5;
-
-/// How one partial of a bell strike scales against the strike it belongs to.
-#[derive(Debug, Clone, Copy)]
-struct BellPartial {
-    frequency_multiplier: f32,
-    duration_multiplier: f64,
-    peak_multiplier: f32,
-}
-
-/// The five inharmonic partials of a bell, in order: hum, prime, tierce, quint and
-/// nominal. Upper partials are shorter and quieter, so the low hum rings longest.
-const BELL_PARTIALS: [BellPartial; BELL_PARTIAL_COUNT] = [
-    BellPartial {
-        frequency_multiplier: 0.5,
-        duration_multiplier: 1.2,
-        peak_multiplier: 0.5,
-    },
-    BellPartial {
-        frequency_multiplier: 1.0,
-        duration_multiplier: 1.0,
-        peak_multiplier: 1.0,
-    },
-    BellPartial {
-        frequency_multiplier: 1.2,
-        duration_multiplier: 0.8,
-        peak_multiplier: 0.4,
-    },
-    BellPartial {
-        frequency_multiplier: 1.5,
-        duration_multiplier: 0.6,
-        peak_multiplier: 0.3,
-    },
-    BellPartial {
-        frequency_multiplier: 2.0,
-        duration_multiplier: 0.5,
-        peak_multiplier: 0.25,
-    },
-];
-
-/// Builds one bell strike: the five partials of [`BELL_PARTIALS`], all starting at
-/// `offset_seconds`, each scaled from the strike's `duration_seconds` and `peak_gain`.
-const fn bell_strike(
-    offset_seconds: f64,
-    duration_seconds: f64,
-    peak_gain: f32,
-) -> [Tone; BELL_PARTIAL_COUNT] {
-    let strike = Tone {
-        frequency_hz: BELL_PRIME_HZ,
-        offset_seconds,
-        duration_seconds,
-        peak_gain,
-        wave: OscillatorType::Sine,
-    };
-    let mut partials = [strike; BELL_PARTIAL_COUNT];
-    let mut index = 0;
-    while index < BELL_PARTIAL_COUNT {
-        let scaling = BELL_PARTIALS[index];
-        partials[index].frequency_hz = BELL_PRIME_HZ * scaling.frequency_multiplier;
-        partials[index].duration_seconds = duration_seconds * scaling.duration_multiplier;
-        partials[index].peak_gain = peak_gain * scaling.peak_multiplier;
-        index += 1;
-    }
-    partials
-}
-
-/// Length of each DoubleBell strike, in seconds.
-const SHORT_STRIKE_SECONDS: f64 = 0.35;
-
-/// Length of each TripleBell strike, in seconds.
-const LONG_STRIKE_SECONDS: f64 = 0.55;
-
-/// Peak gain of a strike's prime partial, shared by every bell strike.
-const STRIKE_PEAK_GAIN: f32 = 0.18;
-
-/// Gap between the two DoubleBell strikes, in seconds.
-const DOUBLE_BELL_SPACING_SECONDS: f64 = 0.30;
-
-/// Gap between the three TripleBell strikes, in seconds.
-const TRIPLE_BELL_SPACING_SECONDS: f64 = 0.45;
-
-/// Double short whistle approximating a pea whistle, for the end of a work cycle.
-/// Two short bursts with rapid interruptions simulated by sequential tones.
-const BELL_TONES: &[Tone] = &[
+/// One whistle motif: two short bursts with rapid interruptions simulated by
+/// sequential tones.
+const BELL_MOTIF: [Tone; 6] = [
     // First burst
     Tone {
         frequency_hz: 2900.0,
@@ -185,36 +100,46 @@ const BELL_TONES: &[Tone] = &[
     },
 ];
 
-/// Two short strikes: the DoubleBell cue, marking a set the session survives.
-const DOUBLE_BELL_TONES: [Tone; 2 * BELL_PARTIAL_COUNT] = {
-    let first = bell_strike(0.0, SHORT_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
-    let second = bell_strike(
-        DOUBLE_BELL_SPACING_SECONDS,
-        SHORT_STRIKE_SECONDS,
-        STRIKE_PEAK_GAIN,
-    );
+/// The six-tone double whistle burst every bell cue is built from, ending a work
+/// cycle.
+const BELL_TONES: &[Tone] = &BELL_MOTIF;
+
+/// Length of one whistle motif, in seconds: the patch ends at 0.23 + 0.03.
+const BELL_MOTIF_SECONDS: f64 = 0.26;
+
+/// Silence between the end of one motif and the start of the next, in seconds.
+const BELL_MOTIF_GAP_SECONDS: f64 = 0.20;
+
+/// Builds the whistle motif with every tone offset by `offset_seconds`.
+const fn bell_motif_at(offset_seconds: f64) -> [Tone; 6] {
+    let mut tones = BELL_MOTIF;
+    let mut index = 0;
+    while index < tones.len() {
+        tones[index].offset_seconds += offset_seconds;
+        index += 1;
+    }
+    tones
+}
+
+/// Two motifs: the DoubleBell cue, ending the cool-down.
+const DOUBLE_BELL_TONES: &[Tone] = &{
+    let first = bell_motif_at(0.0);
+    let second = bell_motif_at(BELL_MOTIF_SECONDS + BELL_MOTIF_GAP_SECONDS);
     [
-        first[0], first[1], first[2], first[3], first[4], second[0], second[1], second[2],
-        second[3], second[4],
+        first[0], first[1], first[2], first[3], first[4], first[5], second[0], second[1],
+        second[2], second[3], second[4], second[5],
     ]
 };
 
-/// Three long strikes: the TripleBell cue, marking the end of the session.
-const TRIPLE_BELL_TONES: [Tone; 3 * BELL_PARTIAL_COUNT] = {
-    let first = bell_strike(0.0, LONG_STRIKE_SECONDS, STRIKE_PEAK_GAIN);
-    let second = bell_strike(
-        TRIPLE_BELL_SPACING_SECONDS,
-        LONG_STRIKE_SECONDS,
-        STRIKE_PEAK_GAIN,
-    );
-    let third = bell_strike(
-        2.0 * TRIPLE_BELL_SPACING_SECONDS,
-        LONG_STRIKE_SECONDS,
-        STRIKE_PEAK_GAIN,
-    );
+/// Three motifs: the TripleBell cue, ending the last work cycle of the session.
+const TRIPLE_BELL_TONES: &[Tone] = &{
+    let first = bell_motif_at(0.0);
+    let second = bell_motif_at(BELL_MOTIF_SECONDS + BELL_MOTIF_GAP_SECONDS);
+    let third = bell_motif_at(2.0 * (BELL_MOTIF_SECONDS + BELL_MOTIF_GAP_SECONDS));
     [
-        first[0], first[1], first[2], first[3], first[4], second[0], second[1], second[2],
-        second[3], second[4], third[0], third[1], third[2], third[3], third[4],
+        first[0], first[1], first[2], first[3], first[4], first[5], second[0], second[1],
+        second[2], second[3], second[4], second[5], third[0], third[1], third[2], third[3],
+        third[4], third[5],
     ]
 };
 
@@ -272,8 +197,8 @@ fn tones_for(signal: Signal) -> &'static [Tone] {
         Signal::CountdownBeep => COUNTDOWN_BEEP_TONES,
         Signal::Whistle => WHISTLE_TONES,
         Signal::Bell => BELL_TONES,
-        Signal::DoubleBell => &DOUBLE_BELL_TONES,
-        Signal::TripleBell => &TRIPLE_BELL_TONES,
+        Signal::DoubleBell => DOUBLE_BELL_TONES,
+        Signal::TripleBell => TRIPLE_BELL_TONES,
     }
 }
 
@@ -320,30 +245,29 @@ fn schedule_tone(context: &AudioContext, tone: &Tone) -> Result<(), JsValue> {
 mod tests {
     use super::*;
 
-    /// Partial frequencies of one bell strike in hum, prime, tierce, quint, nominal order.
-    const EXPECTED_STRIKE_HZ: [f32; BELL_PARTIAL_COUNT] = [329.625, 659.25, 791.1, 988.875, 1318.5];
-
-    /// Tolerance for partial frequencies, which are computed in f32.
-    const FREQUENCY_TOLERANCE_HZ: f32 = 0.001;
-
     /// Tolerance for cue end times, which add f64 offsets and durations.
     const END_TOLERANCE_SECONDS: f64 = 1e-9;
 
-    /// Peak gain one strike may use, leaving headroom for the other cues.
-    const PEAK_HEADROOM: f32 = 0.5;
-
-    /// Shortest acceptable session-end cue, in seconds.
-    const SESSION_END_MIN_SECONDS: f64 = 1.5;
+    /// Seconds between the starts of consecutive motifs: one motif plus its gap.
+    const BELL_MOTIF_STRIDE_SECONDS: f64 = BELL_MOTIF_SECONDS + BELL_MOTIF_GAP_SECONDS;
 
     /// The Bell, DoubleBell and TripleBell cue tables.
     fn bell_cues() -> [&'static [Tone]; 3] {
-        [BELL_TONES, &DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES]
+        [BELL_TONES, DOUBLE_BELL_TONES, TRIPLE_BELL_TONES]
+    }
+
+    /// Seconds after the cue start when its last tone stops sounding.
+    fn cue_end_seconds(tones: &[Tone]) -> f64 {
+        tones
+            .iter()
+            .map(|tone| tone.offset_seconds + tone.duration_seconds)
+            .fold(0.0, f64::max)
     }
 
     #[test]
-    fn double_and_triple_bell_tables_hold_two_and_three_strikes() {
-        assert_eq!(DOUBLE_BELL_TONES.len(), 10);
-        assert_eq!(TRIPLE_BELL_TONES.len(), 15);
+    fn double_and_triple_bell_tables_hold_two_and_three_motifs() {
+        assert_eq!(DOUBLE_BELL_TONES.len(), 12);
+        assert_eq!(TRIPLE_BELL_TONES.len(), 18);
     }
 
     #[test]
@@ -358,43 +282,48 @@ mod tests {
     }
 
     #[test]
-    fn first_triple_strike_has_exactly_the_bell_partials() {
-        let frequencies: Vec<f32> = TRIPLE_BELL_TONES[..BELL_PARTIAL_COUNT]
-            .iter()
-            .map(|tone| tone.frequency_hz)
-            .collect();
-        assert_eq!(frequencies.len(), EXPECTED_STRIKE_HZ.len());
-        for (actual, expected) in frequencies.into_iter().zip(EXPECTED_STRIKE_HZ) {
-            assert!(
-                (actual - expected).abs() < FREQUENCY_TOLERANCE_HZ,
-                "expected {expected} Hz, got {actual} Hz"
-            );
-        }
-    }
-
-    #[test]
-    fn every_strike_stays_under_peak_gain_headroom() {
-        let strike_cues: [&[Tone]; 2] = [&DOUBLE_BELL_TONES, &TRIPLE_BELL_TONES];
-        for tones in strike_cues {
-            for strike in tones.chunks(BELL_PARTIAL_COUNT) {
-                let peak_sum: f32 = strike.iter().map(|tone| tone.peak_gain).sum();
-                assert!(peak_sum <= PEAK_HEADROOM, "strike peaks sum to {peak_sum}");
+    fn repeated_bell_motifs_only_shift_the_motif_offsets() {
+        let motif_length = BELL_MOTIF.len();
+        for tones in [DOUBLE_BELL_TONES, TRIPLE_BELL_TONES] {
+            for (index, tone) in tones.iter().enumerate() {
+                let motif_tone = BELL_MOTIF[index % motif_length];
+                assert_eq!(tone.frequency_hz, motif_tone.frequency_hz);
+                assert_eq!(tone.duration_seconds, motif_tone.duration_seconds);
+                assert_eq!(tone.peak_gain, motif_tone.peak_gain);
+                assert_eq!(tone.wave, motif_tone.wave);
+                let expected_offset_seconds = (index / motif_length) as f64
+                    * BELL_MOTIF_STRIDE_SECONDS
+                    + motif_tone.offset_seconds;
+                assert!(
+                    (tone.offset_seconds - expected_offset_seconds).abs() < END_TOLERANCE_SECONDS,
+                    "tone {index}: expected offset {expected_offset_seconds} s, got {} s",
+                    tone.offset_seconds
+                );
             }
         }
     }
 
     #[test]
-    fn triple_bell_tail_outlasts_the_strike_spacing() {
-        let cue_end_seconds = TRIPLE_BELL_TONES
-            .iter()
-            .map(|tone| tone.offset_seconds + tone.duration_seconds)
-            .fold(0.0, f64::max);
-        let last_strike_offset_seconds = 2.0 * TRIPLE_BELL_SPACING_SECONDS;
-        let hum_tail_seconds = LONG_STRIKE_SECONDS * BELL_PARTIALS[0].duration_multiplier;
-        assert!(cue_end_seconds >= SESSION_END_MIN_SECONDS);
-        assert!(
-            (cue_end_seconds - (last_strike_offset_seconds + hum_tail_seconds)).abs()
-                < END_TOLERANCE_SECONDS
-        );
+    fn consecutive_bell_motifs_are_separated_by_silence() {
+        for (tones, expected_end_seconds) in [(DOUBLE_BELL_TONES, 0.72), (TRIPLE_BELL_TONES, 1.18)]
+        {
+            let motifs: Vec<&[Tone]> = tones.chunks(BELL_MOTIF.len()).collect();
+            for (index, pair) in motifs.windows(2).enumerate() {
+                let previous_last_tone = pair[0][BELL_MOTIF.len() - 1];
+                let previous_end_seconds =
+                    previous_last_tone.offset_seconds + previous_last_tone.duration_seconds;
+                let gap_seconds = pair[1][0].offset_seconds - previous_end_seconds;
+                assert!(
+                    (gap_seconds - BELL_MOTIF_GAP_SECONDS).abs() < END_TOLERANCE_SECONDS,
+                    "motif {}: expected a {BELL_MOTIF_GAP_SECONDS} s gap, got {gap_seconds} s",
+                    index + 1
+                );
+            }
+            let actual_end_seconds = cue_end_seconds(tones);
+            assert!(
+                (actual_end_seconds - expected_end_seconds).abs() < END_TOLERANCE_SECONDS,
+                "expected the cue to end at {expected_end_seconds} s, got {actual_end_seconds} s"
+            );
+        }
     }
 }
