@@ -2,6 +2,7 @@
 name = "app"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 
 [dependencies]
 timer-core = { path = "../timer-core" }
@@ -35,3 +36,6 @@ web-sys = { version = "=0.3.107", features = [
     "VisibilityState",
     "Window",
 ] }
+
+[lints]
+workspace = true
