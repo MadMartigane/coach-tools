@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 70204041c76150f87b06d9bf8cda3a3633c0655bc7cb3f74a85e9e38e4a65303 # shrinks to timer = Timer { name: "Property", preparation: 0, work: 0, rest: 0, cycles_per_set: 1, sets: 1, rest_between_sets: 0, cool_down: 0 }, overshoot = 0, later = []
+cc ab4eab28123dff6105b1374d1e826c3d7943fcb7c19d8199c4db01bdef23ffe4 # shrinks to timer = Timer { name: "Property", preparation: 0, work: 0, rest: 0, cycles_per_set: 1, sets: 1, rest_between_sets: 0, cool_down: 0 }
+cc ca4d5e97b201e06bfe4ed69fefd836fe3de18789665c1a0190dfee9e56a65ee2 # shrinks to timer = Timer { name: "Property", preparation: 0, work: 0, rest: 0, cycles_per_set: 1, sets: 1, rest_between_sets: 0, cool_down: 0 }, advances = []
