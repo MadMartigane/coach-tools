@@ -27,7 +27,10 @@ Install these tools per user. They need no `sudo`.
 2. Install Trunk 0.22.1 from its [release page](https://github.com/trunk-rs/trunk/releases). Place the binary in `~/.cargo/bin`.
 3. Check the setup: `rustc --version` and `trunk --version`.
 4. Install the task runner once with `cargo install --locked just`. Run `just` to list the recipes in `justfile`.
-5. Run the app with `just dev`, then open the URL Trunk prints. The production bundle is built with `just build` into `app/dist/`.
+5. Install the dependency auditor once with `cargo install --locked --version 0.20.2 cargo-deny`.
+6. Enable the Git hooks once with `git config core.hooksPath .githooks`. The pre-commit hook runs `just audit` (cargo-deny: security advisories, licenses, duplicate crates, sources); it fetches the RustSec advisory database, so committing needs network access.
+7. Run the app with `just dev`, then open the URL Trunk prints. The production bundle is built with `just build` into `app/dist/`.
+8. Run `just check` before every commit: formatting, the host and browser lints, then the tests.
 
 ## Status
 

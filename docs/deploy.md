@@ -13,7 +13,7 @@ Targets:
 
 Work through this checklist in order. The scripts do everything not listed here.
 
-1. Install the system packages that the Rust toolchain needs to compile Trunk and `just`, plus `git`, `curl` and `rsync`. Use the command for your distribution:
+1. Install the system packages that the Rust toolchain needs to compile Trunk, `just` and cargo-deny, plus `git`, `curl` and `rsync`. Use the command for your distribution:
    - Debian or Ubuntu: `build-essential pkg-config libssl-dev git curl rsync`
    - RHEL or Fedora: `gcc gcc-c++ make pkg-config openssl-devel git curl rsync`
 2. Clone the repository into the directory you want to keep it in, for example `~/coach-tools`:
@@ -29,7 +29,9 @@ Work through this checklist in order. The scripts do everything not listed here.
    ```sh
    scripts/bootstrap.sh
    ```
-   It installs rustup, the Rust version pinned in `rust-toolchain.toml` with its components and the `wasm32-unknown-unknown` target, Trunk 0.22.1 and just 1.59.0, all under `.tools/`. It is safe to run again.
+   It installs rustup, the Rust version pinned in `rust-toolchain.toml` with its components and the `wasm32-unknown-unknown` target, Trunk 0.22.1, just 1.59.0 and cargo-deny 0.20.2, all under `.tools/`. It also enables the repository Git hooks with `git config core.hooksPath .githooks`. It is safe to run again.
+
+   `just prod` and `just pre-prod` run `just check` before building, so the production machine needs `just`, the `clippy` and `rustfmt` components and the `wasm32-unknown-unknown` target, all installed by `scripts/bootstrap.sh` from `rust-toolchain.toml`; check them with `rustup component list --installed` and `rustup target list --installed`.
 5. Add the line for your shell to its startup file, replacing `<repo>` with the absolute path of the clone, and open a new shell:
    - bash, in `~/.bashrc`:
      ```sh
@@ -63,10 +65,11 @@ just pre-prod    # builds the develop branch and publishes it to /coach-tools-pr
 Each recipe calls `scripts/deploy.sh <target>`, which:
 
 1. stops unless the current branch is the required one (`main` for `prod`; pre-production accepts any branch) and the working tree is clean;
-2. builds the app with `trunk build --release --config app --public-url <base>`;
-3. checks that `app/dist/index.html` references the base path;
-4. sets a new service worker cache name in `app/dist/sw.js`;
-5. syncs `app/dist/` into the web root with `rsync --delete`, or stages a copy inside the web root and swaps the files in place before pruning old assets when `rsync` is missing.
+2. runs `just check` (formatting, the host and browser lints, the tests) and stops with `error: just check failed: …` when it fails;
+3. builds the app with `trunk build --release --config app --public-url <base>`;
+4. checks that `app/dist/index.html` references the base path;
+5. sets a new service worker cache name in `app/dist/sw.js`;
+6. syncs `app/dist/` into the web root with `rsync --delete`, or stages a copy inside the web root and swaps the files in place before pruning old assets when `rsync` is missing.
 
 Before a deploy, check out the branch you want to publish, for example a feature branch for pre-production, `git checkout main && git pull` for production. Then run the recipe.
 
@@ -76,7 +79,7 @@ To check what a deploy would do without building or touching the web root:
 scripts/deploy.sh pre-prod --dry-run
 ```
 
-The dry run still checks the branch, the clean working tree and the presence of Trunk. It then prints the build, cache rename and sync commands and exits 0.
+The dry run still checks the branch, the clean working tree and the presence of Trunk; it then prints the `just check`, build, cache rename and sync commands without running them and exits 0.
 
 To deploy into a scratch directory instead of the web root, set `COACH_TOOLS_DEST`:
 

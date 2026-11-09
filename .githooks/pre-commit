@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Audits the dependencies with `just audit` before every commit. Enabled by
+# `git config core.hooksPath .githooks`, which scripts/bootstrap.sh runs.
+# It fetches the RustSec advisory database, so it needs network access.
+set -euo pipefail
+
+exec just audit
