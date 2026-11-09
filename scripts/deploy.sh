@@ -88,6 +88,13 @@ check_trunk() {
   fi
 }
 
+# Runs the repository gate (formatting, host and browser lints, tests) so a commit that fails them is never published.
+run_checks() {
+  if ! run just check; then
+    die "just check failed: fix the formatting, lint or test errors above before deploying"
+  fi
+}
+
 build_app() {
   run trunk build --release --config app --public-url "$BASE_PATH"
 }
@@ -205,6 +212,7 @@ main() {
   check_branch
   check_clean_tree
   check_trunk
+  run_checks
 
   build_app
   if (( dry_run == 0 )); then

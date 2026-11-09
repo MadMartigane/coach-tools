@@ -37,3 +37,7 @@ check:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo clippy --workspace --target wasm32-unknown-unknown -- -D warnings
     cargo test --workspace
+
+# Audit the dependencies with cargo-deny: advisories, licenses, bans, sources. Needs the network.
+audit:
+    cargo deny check

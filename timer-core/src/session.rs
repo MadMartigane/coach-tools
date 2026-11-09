@@ -144,6 +144,7 @@ mod tests {
     use crate::clock::SimulatedClock;
     use crate::timeline::{PhaseKind, Signal, SignalEvent};
     use crate::timer::Timer;
+    use proptest::prelude::*;
 
     fn walk_timer() -> Timer {
         Timer {
@@ -306,5 +307,143 @@ mod tests {
         assert_eq!(session.remaining(), 0);
         assert_eq!(session.current_phase(), None);
         assert_eq!(session.state(), SessionState::Finished);
+    }
+
+    fn valid_timer() -> impl Strategy<Value = Timer> {
+        (
+            0u32..=600,
+            0u32..=600,
+            0u32..=600,
+            1u32..=20,
+            1u32..=10,
+            0u32..=600,
+            0u32..=600,
+        )
+            .prop_map(
+                |(preparation, work, rest, cycles_per_set, sets, rest_between_sets, cool_down)| {
+                    Timer {
+                        name: String::from("Property"),
+                        preparation,
+                        work,
+                        rest,
+                        cycles_per_set,
+                        sets,
+                        rest_between_sets,
+                        cool_down,
+                    }
+                },
+            )
+    }
+
+    fn assert_within_total(
+        session: &Session<SimulatedClock>,
+        total: u64,
+    ) -> Result<(), TestCaseError> {
+        prop_assert!(session.remaining() <= total);
+        prop_assert_eq!(session.elapsed() + session.remaining(), total);
+        if let Some(view) = session.current_phase() {
+            prop_assert!(1 <= view.remaining);
+            prop_assert!(view.remaining <= session.remaining());
+        }
+        Ok(())
+    }
+
+    fn assert_finished(session: &Session<SimulatedClock>, total: u64) -> Result<(), TestCaseError> {
+        prop_assert_eq!(session.state(), SessionState::Finished);
+        prop_assert_eq!(session.current_phase(), None);
+        prop_assert_eq!(session.remaining(), 0);
+        prop_assert_eq!(session.elapsed(), total);
+        Ok(())
+    }
+
+    proptest! {
+        #[test]
+        fn remaining_stays_within_total_duration(
+            timer in valid_timer(),
+            advances in prop::collection::vec(0u64..=900, 0..40),
+        ) {
+            let clock = SimulatedClock::new();
+            let session = Session::new(&timer, clock.clone()).expect("valid generated timer");
+            let total = timer.total_duration();
+
+            assert_within_total(&session, total)?;
+            for step in advances {
+                clock.advance(step);
+                assert_within_total(&session, total)?;
+            }
+        }
+
+        #[test]
+        fn remaining_never_increases_as_clock_advances(
+            timer in valid_timer(),
+            steps in prop::collection::vec((0u64..=900, any::<bool>()), 1..40),
+        ) {
+            let clock = SimulatedClock::new();
+            let mut session = Session::new(&timer, clock.clone()).expect("valid generated timer");
+
+            for (seconds, toggle) in steps {
+                if toggle {
+                    let before_toggle = session.remaining();
+                    if session.state() == SessionState::Paused {
+                        session.resume();
+                    } else {
+                        session.pause();
+                    }
+                    prop_assert_eq!(session.remaining(), before_toggle);
+                }
+
+                let before = session.remaining();
+                let was_paused = session.state() == SessionState::Paused;
+                clock.advance(seconds);
+                prop_assert!(session.remaining() <= before);
+                if was_paused {
+                    prop_assert_eq!(session.remaining(), before);
+                }
+            }
+        }
+
+        #[test]
+        fn finished_session_stays_finished(
+            timer in valid_timer(),
+            overshoot in prop_oneof![Just(0u64), 1u64..=900],
+            later in prop::collection::vec((0u64..=900, any::<bool>()), 0..20),
+        ) {
+            let clock = SimulatedClock::new();
+            let mut session = Session::new(&timer, clock.clone()).expect("valid generated timer");
+            let total = timer.total_duration();
+
+            clock.advance(total + overshoot);
+            session.poll_signals();
+            assert_finished(&session, total)?;
+
+            for (seconds, toggle) in later {
+                if toggle {
+                    session.pause();
+                } else {
+                    session.resume();
+                }
+                clock.advance(seconds);
+                assert_finished(&session, total)?;
+                prop_assert!(session.poll_signals().is_empty());
+            }
+        }
+
+        #[test]
+        fn timeline_phases_add_up_to_total_duration(timer in valid_timer()) {
+            let clock = SimulatedClock::new();
+            let session = Session::new(&timer, clock.clone()).expect("valid generated timer");
+            let total = timer.total_duration();
+            let timeline = session.timeline();
+
+            let mut expected_start = 0;
+            for phase in timeline.phases() {
+                prop_assert_eq!(phase.start, expected_start);
+                expected_start = phase.start + phase.duration;
+            }
+            let summed_duration: u64 = timeline.phases().iter().map(|phase| phase.duration).sum();
+            prop_assert_eq!(summed_duration, timeline.total_duration());
+            prop_assert_eq!(timeline.total_duration(), total);
+            prop_assert_eq!(session.remaining(), total);
+        }
     }
 }

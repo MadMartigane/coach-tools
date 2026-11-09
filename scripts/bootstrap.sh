@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Prepares the repository-local toolchain under .tools/: rustup with the
-# toolchain pinned in rust-toolchain.toml, plus Trunk and just.
+# toolchain pinned in rust-toolchain.toml, plus Trunk, just and cargo-deny,
+# and enables the Git hooks in .githooks/.
 # Idempotent and needs no sudo. It downloads from the network.
 set -euo pipefail
 
@@ -10,6 +11,7 @@ cd "$ROOT"
 
 readonly TRUNK_VERSION="0.22.1"
 readonly JUST_VERSION="1.59.0"
+readonly CARGO_DENY_VERSION="0.20.2"
 readonly RUSTUP_INIT_URL="https://sh.rustup.rs"
 readonly RUSTUP_INIT_SCRIPT="$ROOT/.tools/rustup-init.sh"
 
@@ -68,13 +70,18 @@ fi
 "$CARGO_HOME/bin/rustup" show
 install_cargo_tool trunk "$TRUNK_VERSION"
 install_cargo_tool just "$JUST_VERSION"
+install_cargo_tool cargo-deny "$CARGO_DENY_VERSION"
 
 echo
 echo "Resolved versions:"
 "$CARGO_HOME/bin/rustc" --version
 "$CARGO_HOME/bin/trunk" --version
 "$CARGO_HOME/bin/just" --version
+"$CARGO_HOME/bin/cargo-deny" --version
 
+echo
+git config core.hooksPath .githooks
+echo "Git hooks enabled from .githooks/: pre-commit runs just audit."
 echo
 echo "Add this line to the startup file of your shell, then open a new shell:"
 echo "  bash, in ~/.bashrc:"
