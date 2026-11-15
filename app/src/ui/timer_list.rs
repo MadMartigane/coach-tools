@@ -1,20 +1,24 @@
-//! The home screen: the saved timers, one tap from their stopped session
-//! screen; the Démarrer button launches the session.
+//! The Tabata timer list, opened from the home tile: the saved timers, one tap from
+//! their stopped session screen; the Démarrer button launches the session.
 
 use leptos::prelude::*;
 use timer_core::{Timer, format_timer_summary};
 
 use crate::state::AppContext;
-use crate::ui::icons::{IconPencil, IconPlus, LogoMark};
+use crate::ui::icons::{IconChevronLeft, IconPencil, IconPlus, LogoMark};
 
 /// Lists the saved timers, or invites the user to create the first one.
 #[component]
 pub fn TimerListScreen() -> impl IntoView {
-    let timers = expect_context::<AppContext>().timers;
+    let ctx = expect_context::<AppContext>();
+    let timers = ctx.timers;
 
     view! {
         <main class="screen-neutral">
-            <header class="screen-header">
+            <header class="screen-header screen-header-start">
+                <button type="button" class="btn-icon" aria-label="Retour à l'accueil" on:click=move |_| ctx.open_home()>
+                    <IconChevronLeft />
+                </button>
                 <h1 class="brand-title">
                     <LogoMark />
                     <span>"TABATA TIMER"</span>

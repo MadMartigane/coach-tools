@@ -11,6 +11,8 @@ use crate::platform::wake_lock::WakeLockGuard;
 /// The screen currently shown, with the data that screen needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Screen {
+    /// The home page: one tile per tool.
+    Home,
     /// The list of saved timers.
     TimerList,
     /// The editor for a new timer (`index` is `None`) or a saved one.
@@ -31,14 +33,24 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    /// Loads the saved timers and starts on the timer list.
+    /// Loads the saved timers and starts on the home page.
     pub fn new() -> Self {
         Self {
             timers: RwSignal::new(load_timers()),
-            screen: RwSignal::new(Screen::TimerList),
+            screen: RwSignal::new(Screen::Home),
             sound: SoundPlayer::new(),
             wake_lock: WakeLockGuard::default(),
         }
+    }
+
+    /// Shows the home page.
+    pub fn open_home(&self) {
+        self.screen.set(Screen::Home);
+    }
+
+    /// Shows the Tabata timer list.
+    pub fn open_timer_list(&self) {
+        self.screen.set(Screen::TimerList);
     }
 
     /// Opens the editor on a new timer with the default program.

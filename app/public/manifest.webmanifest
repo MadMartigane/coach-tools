@@ -1,6 +1,6 @@
 {
-  "name": "TABATA TIMER — coach-tools",
-  "short_name": "Tabata",
+  "name": "coach-tools",
+  "short_name": "coach-tools",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

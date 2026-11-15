@@ -1,4 +1,4 @@
-const CACHE_NAME = "coach-tools-tabata-v1";
+const CACHE_NAME = "coach-tools-v1";
 const CORE_ASSETS = [
   "./",
   "./index.html",

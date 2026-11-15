@@ -1,11 +1,11 @@
-//! The completion screen: the finished program, with Replay and Home.
+//! The completion screen: the finished program, with Replay and My timers.
 
 use leptos::prelude::*;
 use timer_core::{SessionState, Timer, format_mm_ss};
 
 use crate::platform::theme::{THEME_BG, set_theme_color, theme_color_for_session};
 use crate::state::AppContext;
-use crate::ui::icons::{IconCheck, IconHome, IconRotateCcw, LogoMark};
+use crate::ui::icons::{IconCheck, IconList, IconRotateCcw, LogoMark};
 
 /// Shows that `timer` finished after `total_duration` seconds, and offers to
 /// replay it or return to the timer list.
@@ -44,8 +44,8 @@ pub fn DoneScreen(timer: Timer, total_duration: u64) -> impl IntoView {
                         <span>"Rejouer"</span>
                     </button>
                     <button type="button" class="btn-phase-secondary" on:click=move |_| ctx.exit_to_list()>
-                        <IconHome />
-                        <span>"Accueil"</span>
+                        <IconList />
+                        <span>"Mes timers"</span>
                     </button>
                 </div>
             </div>
