@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the TABATA TIMER app for one target and publishes it to that target's web root.
+# Builds the coach-tools app for one target and publishes it to that target's web root.
 # Runs on the production machine only.
 #
 # Usage: scripts/deploy.sh prod|pre-prod [--dry-run]
@@ -16,7 +16,7 @@ readonly BUILD_DIR="app/dist"
 readonly INDEX_FILE="$BUILD_DIR/index.html"
 readonly SERVICE_WORKER_FILE="$BUILD_DIR/sw.js"
 # Cache name as committed in app/public/sw.js; rewritten on every deploy.
-readonly PLACEHOLDER_CACHE_NAME="coach-tools-tabata-v1"
+readonly PLACEHOLDER_CACHE_NAME="coach-tools-v1"
 
 dry_run=0
 TARGET=""
@@ -110,7 +110,7 @@ verify_build() {
 
 # Gives each deploy its own service worker cache, so browsers drop the previous app.
 rewrite_cache_name() {
-  local cache_name="coach-tools-tabata-$CACHE_TARGET-$COMMIT_SHA"
+  local cache_name="coach-tools-$CACHE_TARGET-$COMMIT_SHA"
   run sed -i "s/\"$PLACEHOLDER_CACHE_NAME\"/\"$cache_name\"/" "$SERVICE_WORKER_FILE"
   if (( dry_run == 0 )) && ! grep -qF "\"$cache_name\"" "$SERVICE_WORKER_FILE"; then
     die "$SERVICE_WORKER_FILE does not contain \"$PLACEHOLDER_CACHE_NAME\"; cannot set the cache name"
