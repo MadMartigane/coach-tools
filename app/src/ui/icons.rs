@@ -1,4 +1,4 @@
-//! Inline SVG icons: the Tabata logo mark and the Lucide icon set (ISC, see `THIRD_PARTY_LICENSES.md`).
+//! Inline SVG icons: the coach-tools app mark, the Tabata logo mark and the Lucide icon set (ISC, see `THIRD_PARTY_LICENSES.md`).
 //!
 //! Colors and sizes come from CSS classes and `currentColor`, never inline
 //! dimensions or color codes.
@@ -32,6 +32,19 @@ pub fn LogoMark() -> impl IntoView {
             <rect x="3" y="3" width="4" height="18" rx="2" class="logo-bar-outer" />
             <rect x="10" y="7" width="4" height="10" rx="2" class="logo-bar-mid" />
             <rect x="17" y="3" width="4" height="18" rx="2" class="logo-bar-outer" />
+        </svg>
+    }
+}
+
+/// The coach-tools mark, a whistle seen from the side. Its hole takes the page
+/// background colour, so it is shown on `--color-bg` only (the home header).
+#[component]
+pub fn AppMark() -> impl IntoView {
+    view! {
+        <svg class="logo-mark" viewBox="10 12 160 160" aria-hidden="true">
+            <circle cx="72" cy="92" r="50" class="app-mark-figure" />
+            <path d="M72 42H148A10 10 0 0 1 158 52V72A10 10 0 0 1 148 82H72Z" class="app-mark-figure" />
+            <circle cx="72" cy="92" r="16" class="app-mark-ground" />
         </svg>
     }
 }
@@ -99,13 +112,17 @@ pub fn IconRotateCcw() -> impl IntoView {
     }
 }
 
-/// Lucide `house`.
+/// Lucide `list`.
 #[component]
-pub fn IconHome() -> impl IntoView {
+pub fn IconList() -> impl IntoView {
     view! {
         <LucideIcon>
-            <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
-            <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <path d="M3 5h.01" />
+            <path d="M3 12h.01" />
+            <path d="M3 19h.01" />
+            <path d="M8 5h13" />
+            <path d="M8 12h13" />
+            <path d="M8 19h13" />
         </LucideIcon>
     }
 }

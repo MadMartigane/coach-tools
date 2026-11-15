@@ -68,6 +68,7 @@
   --focus-ring-offset: 3px;
   --size-icon-glyph: 24px;
   --size-logo-mark: 32px;
+  --size-tile-icon: 64px;
   --size-done-icon: 64px;
   --size-track-height: 8px;
   --size-progress-marker: 10px;
@@ -129,7 +130,17 @@ body {
   fill: currentColor;
 }
 
-/* Neutral screens: TimerList and Editor */
+.app-mark-figure {
+  fill: var(--color-text);
+  stroke: none;
+}
+
+.app-mark-ground {
+  fill: var(--color-bg);
+  stroke: none;
+}
+
+/* Neutral screens: Home, TimerList and Editor */
 
 .screen-neutral {
   min-height: 100vh;
@@ -148,6 +159,10 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+.screen-header-start {
+  justify-content: flex-start;
 }
 
 .brand-title {
@@ -211,6 +226,45 @@ body {
   background: var(--color-surface-raised);
   color: var(--color-text);
   border: none;
+}
+
+/* Home tool grid */
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tool-tile {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.tool-tile .logo-mark {
+  width: var(--size-tile-icon);
+  height: var(--size-tile-icon);
+}
+
+.tool-tile-title {
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-align: center;
 }
 
 /* Empty state */
