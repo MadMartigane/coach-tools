@@ -4,7 +4,7 @@ Instructions for AI coding agents working on this repository.
 
 ## Project
 
-`coach-tools` is a set of small offline web tools for sports coaching. The first tool is TABATA TIMER, an interval timer for phones in portrait mode. The project also explores WebAssembly with Rust. The UI is Leptos 0.8 in client-side rendering, built with Trunk.
+`coach-tools` is a set of small offline web tools for sports coaching, shipped as one app and one PWA. The app opens on a home page with one tile per tool; the first tool is TABATA TIMER, an interval timer for phones in portrait mode. Navigation is the `Screen` enum in `app/src/state.rs`, with no URL router: a new tool adds `Screen` variants and one tile on the home screen. The project also explores WebAssembly with Rust. The UI is Leptos 0.8 in client-side rendering, built with Trunk.
 
 ## Language
 

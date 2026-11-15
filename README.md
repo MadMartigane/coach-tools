@@ -1,6 +1,6 @@
 # coach-tools
 
-A small web application that groups the tools and utilities a sports coach uses.
+A small web application that groups the tools and utilities a sports coach uses. It opens on a home page where each tool is a tile with its icon and title. It installs as one Progressive Web App named coach-tools, with a whistle icon.
 
 ## Tools
 
@@ -34,7 +34,7 @@ Install these tools per user. They need no `sudo`.
 
 ## Status
 
-TABATA TIMER is implemented. It runs offline in the browser once the app has been loaded once.
+The coach-tools home page and TABATA TIMER, its only tool, are implemented. The app runs offline in the browser once it has been loaded once.
 
 ## Branches
 

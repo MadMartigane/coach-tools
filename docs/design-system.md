@@ -1,4 +1,4 @@
-# TABATA TIMER Design System
+# coach-tools Design System
 
 Version 1. Single source of truth for every visual decision in this app.
 Any colour, size, radius, duration or font used by the UI MUST come from the
@@ -99,6 +99,7 @@ Control heights (minimums, width follows content unless stated):
 | `--size-ghost`         | `56px` | Secondary (Modify, End session) and steppers         |
 | `--size-icon`          | `48px` | Icon buttons (back, delete), square                  |
 | `--size-row`           | `80px` | Timer list rows, whole row tappable                  |
+| `--size-tile-icon`     | `64px` | Tool mark inside a home tile |
 | `--size-progress-marker` | `10px` | Progress marker, width including its outline |
 
 Absolute floor for any target: 48x48px (Material asks 48dp, Apple HIG 44pt,
@@ -113,7 +114,7 @@ steps instantly.
 
 ## 5. Component rules
 
-### Controls on a phase screen (Démarrer / Pause / Reprendre / Rejouer / Accueil)
+### Controls on a phase screen (Démarrer / Pause / Reprendre / Rejouer / Mes timers)
 
 Fill with the phase's `-fg` token and label with the phase's `-bg` token
 (the control inverts the phase colours). Every pair already passes 4.5:1 and
@@ -178,7 +179,14 @@ gesture that unlocks the sound and acquires the wake lock.
   muted, e.g. `Prép 10 · 20/10 ×8 · 4 sets · 31:00`). Height >= `--size-row`,
   the entire row is one tap target.
 - Steppers: value in `--text-lg`, minus/plus buttons at `--size-ghost`.
-- List and editor scroll normally; the session screen never scrolls.
+- Home, list and editor scroll normally; the session screen never scrolls.
+
+### Home tiles
+
+- Grid: two equal columns with a `--space-3` gap, one tile per tool, no placeholder tile; a lone last tile stays in the left column.
+- Tile: square, `--color-surface`, `--radius-md`, padding `--space-3`, no border and no shadow; the whole tile is one native button named by its visible title.
+- Content: the tool mark at `--size-tile-icon` above the tool title (`--text-md`, 700, `--color-text`, centred, wrapping onto two lines when needed), gap `--space-3`; pressed and focus follow the neutral-screen button rules.
+- Way back: a tool's root screen has a back chevron (`aria-label` "Retour à l'accueil") that returns to the home screen; the tool's inner screens return to the tool's root screen, never to the home screen.
 
 ### Icons and logo
 
@@ -187,9 +195,9 @@ gesture that unlocks the sound and acquires the wake lock.
   The ISC notice lives in `THIRD_PARTY_LICENSES.md`.
 - Actions show icon plus text label. Icon-only allowed for the back chevron
   only, with `aria-label`.
-- Logo: three vertical rounded bars, tall-short-tall (two efforts around a
-  rest): outer bars `--color-text`, middle bar `--phase-cooldown-bg`, on
-  `--color-bg`. No gradients, no text in the mark.
+- App mark: the coach-tools whistle on the 180 x 180 canvas, body `<circle cx="72" cy="92" r="50">` and mouthpiece `M72 42H148A10 10 0 0 1 158 52V72A10 10 0 0 1 148 82H72Z` in `--color-text`, hole `<circle cx="72" cy="92" r="16">` and ground in `--color-bg`. It is the installed app icon; in the app it appears only in the home header at `--size-logo-mark` on `--color-bg`, because its hole is painted with `--color-bg` (component `AppMark`, classes `.app-mark-figure` and `.app-mark-ground`).
+- Tabata tool mark: three vertical rounded bars, tall-short-tall (two efforts around a rest): outer bars `--color-text`, middle bar `--phase-cooldown-bg`, on `--color-bg`. No gradients, no text in the mark. Its 180-unit geometry is `x=42 y=40 22x100`, `x=79 y=62 22x56`, `x=116 y=40 22x100`, all `rx=11`. In the app it is `LogoMark` on a 24-unit grid, at `--size-tile-icon` in the Tabata tile and at `--size-logo-mark` in the Tabata headers, with `currentColor` bars on session screens.
+- Family rule: Every mark sits on a 180 by 180 canvas with a full-bleed `--color-bg` ground, uses flat fills, two or three geometric shapes with rounded corners, no gradient, no shadow and no text, and fits the 80% safe circle at scale 2.4. The app mark uses `--color-text` as its only figure colour and is one bold mass that lights at least a quarter of the canvas. A tool mark has its own motif and may use the colours of its own tool; no colour is created to tell tools apart.
 - Manifest icons ship as opaque PNGs generated from the SVG sources in
   `app/public/` by `scripts/generate-icons.sh` (ImageMagick, not part of the
   build): 192px and 512px `purpose: any`, maskable 512px with the mark inside
@@ -200,6 +208,8 @@ gesture that unlocks the sound and acquires the wake lock.
 
 ## 6. Layout rules
 
+- The home screen is the first screen of the app, a neutral screen (`.screen-neutral`) holding a header (app mark at `--size-logo-mark`, then the title `coach-tools` in `--text-lg` 700) and the tool grid of "Home tiles", nothing else. It scrolls normally when the tiles exceed the height; with one tile it fits 360x640 and 932x430 without scrolling.
+- A tool's root screen (the Tabata timer list) has a header with the back chevron, the tool mark at `--size-logo-mark` and the tool title.
 - Portrait session screen is a fixed-height column: header (logo mark small,
   timer name, `Set n/m` chip) / countdown zone / controls / progress strip.
   `height: 100vh; height: 100dvh;` (fallback first), no scrolling, ever.
