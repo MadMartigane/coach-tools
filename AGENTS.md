@@ -13,13 +13,17 @@ Instructions for AI coding agents working on this repository.
 
 ## Branches
 
-- `main`: stable, production-ready. Never commit features directly.
+- `main`: stable, production-ready. Never commit features directly. The only direct commits on `main` are the release commits `chore(release): vX.Y.Z` that `scripts/deploy.sh prod` creates, tags `vX.Y.Z` and pushes; after each production deploy, a pull request `main` -> `develop` brings them back.
 - `develop`: integration. Small changes are committed here directly.
 - `feat/<name>`: created from `develop` for important features. Merged back into `develop`.
 
 ## Commits
 
-Use Conventional Commits: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `build`, `ci`. Keep one logical change per commit.
+Use Conventional Commits: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `build`, `ci`. Keep one logical change per commit. The scope `release` (`chore(release): vX.Y.Z`) is reserved for the commits made by `scripts/deploy.sh prod`.
+
+## Versioning
+
+The app version is `[workspace.package] version` in the root `Cargo.toml` (SemVer). Crates inherit it with `version.workspace = true`, and the app reads it through `env!("CARGO_PKG_VERSION")` in `app/src/version.rs`. Never edit it by hand: only `scripts/deploy.sh prod` bumps it. It is unrelated to `CURRENT_VERSION` in `app/src/platform/storage.rs`, which is the storage schema version.
 
 ## Project memory
 

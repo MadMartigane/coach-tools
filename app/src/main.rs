@@ -1,6 +1,7 @@
 mod platform;
 mod state;
 mod ui;
+mod version;
 
 use leptos::prelude::*;
 

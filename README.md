@@ -38,7 +38,7 @@ The coach-tools home page and TABATA TIMER, its only tool, are implemented. The 
 
 ## Branches
 
-- `main`: stable branch.
+- `main`: stable branch. It also receives the release commits `chore(release): vX.Y.Z` that the production deploy creates, tags and pushes; after each production deploy, open a pull request `main` -> `develop` (the deploy prints its link). Never edit the version in `Cargo.toml` by hand.
 - `develop`: integration branch. Small changes are committed here directly.
 - `feat/<name>`: branch for an important feature, merged into `develop`.
 
@@ -56,4 +56,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Deployment
 
-The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes.
+The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes. `just prod` bumps the SemVer version (patch by default), commits, tags and pushes it to GitHub before publishing, and the home screen shows the version.

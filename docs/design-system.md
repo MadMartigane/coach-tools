@@ -208,7 +208,7 @@ gesture that unlocks the sound and acquires the wake lock.
 
 ## 6. Layout rules
 
-- The home screen is the first screen of the app, a neutral screen (`.screen-neutral`) holding a header (app mark at `--size-logo-mark`, then the title `coach-tools` in `--text-lg` 700) and the tool grid of "Home tiles", nothing else. It scrolls normally when the tiles exceed the height; with one tile it fits 360x640 and 932x430 without scrolling.
+- The home screen is the first screen of the app, a neutral screen (`.screen-neutral`) holding a header (app mark at `--size-logo-mark`, then the title `coach-tools` in `--text-lg` 700), the tool grid of "Home tiles" and the version line, nothing else. The version line reads `vX.Y.Z` in production and `vX.Y.Z+<short sha>` in pre-production; it uses `--text-sm`, `--color-text-muted` (8.4:1 on `--color-bg`) and tabular-nums, is centred, and sits at the bottom of the screen (top margin `auto` in the `.screen-neutral` column). It scrolls normally when the tiles exceed the height; with one tile, the screen, version line included, fits 360x640 and 932x430 without scrolling.
 - A tool's root screen (the Tabata timer list) has a header with the back chevron, the tool mark at `--size-logo-mark` and the tool title.
 - Portrait session screen is a fixed-height column: header (logo mark small,
   timer name, `Set n/m` chip) / countdown zone / controls / progress strip.

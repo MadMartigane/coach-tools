@@ -1,0 +1,9 @@
+[package]
+name = "bump-version"
+version.workspace = true
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lints]
+workspace = true

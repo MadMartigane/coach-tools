@@ -1,12 +1,13 @@
-//! The home screen: the coach-tools mark and one tile per tool.
+//! The home screen: the coach-tools mark, one tile per tool and the app version.
 
 use leptos::prelude::*;
 
 use crate::state::AppContext;
 use crate::ui::icons::{AppMark, LogoMark};
+use crate::version::version_label;
 
-/// Shows the coach-tools header and one tile per tool. Today the only tool is
-/// the Tabata timer, whose tile opens its list.
+/// Shows the coach-tools header, one tile per tool and the app version line. Today
+/// the only tool is the Tabata timer, whose tile opens its list.
 #[component]
 pub fn HomeScreen() -> impl IntoView {
     let ctx = expect_context::<AppContext>();
@@ -27,6 +28,7 @@ pub fn HomeScreen() -> impl IntoView {
                     </button>
                 </li>
             </ul>
+            <p class="app-version">{version_label()}</p>
         </main>
     }
 }

@@ -267,6 +267,14 @@ body {
   text-align: center;
 }
 
+.app-version {
+  margin: auto 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Empty state */
 
 .empty-state {
