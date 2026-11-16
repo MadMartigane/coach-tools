@@ -14,6 +14,7 @@ An interval timer that runs fully offline in a phone browser.
 - Bottom progress bar: current phase, total cycles, elapsed time, remaining time, total duration.
 - Sound cues: three beeps then a whistle lead into every work cycle; one beep then a whistle blast ends each work cycle but the last, which ends with three blasts; the cool-down ends with two blasts.
 - The screen stays on during the whole session, pauses included, while the browser allows it.
+- Interface in French and English: the first launch follows the browser language (French otherwise), a selector on the home page switches it, and the choice is saved on the device.
 
 ## Technology
 

@@ -12,6 +12,7 @@ use crate::ui::icons::{IconCheck, IconList, IconRotateCcw, LogoMark};
 #[component]
 pub fn DoneScreen(timer: Timer, total_duration: u64) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
+    let locale = ctx.locale;
     set_theme_color(theme_color_for_session(SessionState::Finished, None));
     on_cleanup(|| set_theme_color(THEME_BG));
 
@@ -31,7 +32,7 @@ pub fn DoneScreen(timer: Timer, total_duration: u64) -> impl IntoView {
                     <span class="done-check">
                         <IconCheck />
                     </span>
-                    <p class="phase-title">"Terminé"</p>
+                    <p class="phase-title">{move || locale.get().catalog().done_title}</p>
                     <p class="countdown-digits">{format_mm_ss(total_duration)}</p>
                 </div>
                 <div class="session-controls">
@@ -41,11 +42,11 @@ pub fn DoneScreen(timer: Timer, total_duration: u64) -> impl IntoView {
                         on:click=move |_| replay_ctx.open_session(replay_timer.clone())
                     >
                         <IconRotateCcw />
-                        <span>"Rejouer"</span>
+                        <span>{move || locale.get().catalog().replay}</span>
                     </button>
                     <button type="button" class="btn-phase-secondary" on:click=move |_| ctx.exit_to_list()>
                         <IconList />
-                        <span>"Mes timers"</span>
+                        <span>{move || locale.get().catalog().my_timers}</span>
                     </button>
                 </div>
             </div>

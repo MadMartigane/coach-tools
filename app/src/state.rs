@@ -4,6 +4,7 @@
 use leptos::prelude::*;
 use timer_core::{InvalidTimer, Timer};
 
+use crate::locale::{Locale, initial_locale, save_locale};
 use crate::platform::audio::SoundPlayer;
 use crate::platform::storage::{load_timers, save_timers};
 use crate::platform::wake_lock::WakeLockGuard;
@@ -28,6 +29,7 @@ pub enum Screen {
 pub struct AppContext {
     pub timers: RwSignal<Vec<Timer>>,
     pub screen: RwSignal<Screen>,
+    pub locale: RwSignal<Locale>,
     pub sound: SoundPlayer,
     pub wake_lock: WakeLockGuard,
 }
@@ -38,9 +40,16 @@ impl AppContext {
         Self {
             timers: RwSignal::new(load_timers()),
             screen: RwSignal::new(Screen::Home),
+            locale: RwSignal::new(initial_locale()),
             sound: SoundPlayer::new(),
             wake_lock: WakeLockGuard::default(),
         }
+    }
+
+    /// Switches the interface language and remembers the choice on this device.
+    pub fn set_locale(&self, locale: Locale) {
+        self.locale.set(locale);
+        save_locale(locale);
     }
 
     /// Shows the home page.

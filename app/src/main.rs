@@ -1,3 +1,4 @@
+mod locale;
 mod platform;
 mod state;
 mod ui;
@@ -21,6 +22,8 @@ fn main() {
 fn App() -> impl IntoView {
     let ctx = AppContext::new();
     provide_context(ctx.clone());
+    let language = ctx.locale;
+    Effect::new(move |_| locale::set_document_lang(language.get()));
 
     move || match ctx.screen.get() {
         Screen::Home => view! { <HomeScreen /> }.into_any(),
