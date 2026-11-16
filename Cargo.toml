@@ -3,7 +3,7 @@ resolver = "3"
 members = ["timer-core", "app", "bump-version"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
