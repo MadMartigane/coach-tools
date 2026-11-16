@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Builds the TABATA TIMER app for one target and publishes it to that target's web root.
+# Builds the coach-tools app for one target and publishes it to that target's web root.
 # Runs on the production machine only.
 #
-# Usage: scripts/deploy.sh prod|pre-prod [--dry-run]
+# Usage: scripts/deploy.sh prod|pre-prod [--dry-run] [--bump patch|minor|major | --no-bump]
+# --bump and --no-bump apply to prod only. prod bumps the patch version by default, commits, tags and pushes it before building.
 # Environment: COACH_TOOLS_DEST overrides the destination directory.
 set -euo pipefail
 
@@ -10,13 +11,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env.sh"
 cd "$ROOT"
 
-readonly USAGE="usage: scripts/deploy.sh prod|pre-prod [--dry-run]"
+readonly USAGE="usage: scripts/deploy.sh prod|pre-prod [--dry-run] [--bump patch|minor|major | --no-bump]"
 readonly PUBLIC_HOST="https://marius.click"
 readonly BUILD_DIR="app/dist"
 readonly INDEX_FILE="$BUILD_DIR/index.html"
 readonly SERVICE_WORKER_FILE="$BUILD_DIR/sw.js"
 # Cache name as committed in app/public/sw.js; rewritten on every deploy.
-readonly PLACEHOLDER_CACHE_NAME="coach-tools-tabata-v1"
+readonly PLACEHOLDER_CACHE_NAME="coach-tools-v1"
+readonly WORKSPACE_MANIFEST="Cargo.toml"
+readonly LOCK_FILE="Cargo.lock"
+readonly REMOTE="origin"
+readonly PULL_REQUEST_URL="https://github.com/MadMartigane/coach-tools/compare/develop...main"
+readonly BUILD_SHA_VARIABLE="COACH_TOOLS_BUILD_SHA"
 
 dry_run=0
 TARGET=""
@@ -25,6 +31,10 @@ DEST=""
 REQUIRED_BRANCH=""
 CACHE_TARGET=""
 COMMIT_SHA=""
+bump_level="patch"
+bump_given=0
+no_bump=0
+VERSION=""
 
 die() {
   printf 'error: %s\n' "$1" >&2
@@ -95,8 +105,15 @@ run_checks() {
   fi
 }
 
+# Production builds unset the build SHA so Home shows only the version; pre-production embeds the commit.
 build_app() {
-  run trunk build --release --config app --public-url "$BASE_PATH"
+  local -a build_env
+  if [[ "$TARGET" == prod ]]; then
+    build_env=(-u "$BUILD_SHA_VARIABLE")
+  else
+    build_env=("$BUILD_SHA_VARIABLE=$COMMIT_SHA")
+  fi
+  run env "${build_env[@]}" trunk build --release --config app --public-url "$BASE_PATH"
 }
 
 verify_build() {
@@ -110,7 +127,7 @@ verify_build() {
 
 # Gives each deploy its own service worker cache, so browsers drop the previous app.
 rewrite_cache_name() {
-  local cache_name="coach-tools-tabata-$CACHE_TARGET-$COMMIT_SHA"
+  local cache_name="coach-tools-$CACHE_TARGET-$COMMIT_SHA"
   run sed -i "s/\"$PLACEHOLDER_CACHE_NAME\"/\"$cache_name\"/" "$SERVICE_WORKER_FILE"
   if (( dry_run == 0 )) && ! grep -qF "\"$cache_name\"" "$SERVICE_WORKER_FILE"; then
     die "$SERVICE_WORKER_FILE does not contain \"$PLACEHOLDER_CACHE_NAME\"; cannot set the cache name"
@@ -189,30 +206,145 @@ sync_by_copy() {
 
 report() {
   if (( dry_run )); then
-    echo "Dry run complete: would deploy commit $COMMIT_SHA to $PUBLIC_HOST$BASE_PATH"
-  else
-    echo "Deployed commit $COMMIT_SHA to $PUBLIC_HOST$BASE_PATH"
+    echo "Dry run complete: would deploy v$VERSION (commit $COMMIT_SHA) to $PUBLIC_HOST$BASE_PATH"
+    return
+  fi
+  echo "Deployed v$VERSION (commit $COMMIT_SHA) to $PUBLIC_HOST$BASE_PATH"
+  if [[ "$TARGET" == prod ]]; then
+    echo "Open the pull request main -> develop: $PULL_REQUEST_URL"
+  fi
+}
+
+# Parses the options that follow the target, in any order.
+parse_options() {
+  while (( $# > 0 )); do
+    case "$1" in
+      --dry-run)
+        dry_run=1
+        ;;
+      --bump)
+        if (( $# < 2 )) || [[ "$2" != patch && "$2" != minor && "$2" != major ]]; then
+          die "--bump expects patch, minor or major. $USAGE"
+        fi
+        bump_level="$2"
+        bump_given=1
+        shift
+        ;;
+      --no-bump)
+        no_bump=1
+        ;;
+      *)
+        die "$USAGE"
+        ;;
+    esac
+    shift
+  done
+
+  if (( bump_given && no_bump )); then
+    die "--bump and --no-bump cannot be combined"
+  fi
+  if [[ "$TARGET" != prod ]] && (( bump_given || no_bump )); then
+    die "--bump and --no-bump apply to prod only"
+  fi
+}
+
+# Prints the version from the single 'version = "X.Y.Z"' line of WORKSPACE_MANIFEST.
+read_workspace_version() {
+  local -a versions
+  mapfile -t versions < <(sed -n 's/^version = "\([^"]*\)"$/\1/p' "$WORKSPACE_MANIFEST")
+  if (( ${#versions[@]} != 1 )) || [[ -z "${versions[0]}" ]]; then
+    die "$WORKSPACE_MANIFEST must hold exactly one 'version = \"X.Y.Z\"' line, in [workspace.package]"
+  fi
+  printf '%s\n' "${versions[0]}"
+}
+
+# Fetches the remote and refuses to release from a local branch that lacks remote commits.
+check_origin() {
+  if ! git fetch --tags "$REMOTE"; then
+    die "git fetch $REMOTE failed; a production deploy needs network access to GitHub"
+  fi
+  local remote_commits_missing
+  remote_commits_missing="$(git rev-list --count "HEAD..$REMOTE/$REQUIRED_BRANCH")"
+  if (( remote_commits_missing > 0 )); then
+    die "local $REQUIRED_BRANCH is behind $REMOTE/$REQUIRED_BRANCH or has diverged; run 'git pull --ff-only' and deploy again"
+  fi
+}
+
+# Bumps the workspace version, then commits, tags and pushes the release before anything is built.
+release() {
+  local current next tag escaped_current
+  current="$(read_workspace_version)"
+  next="$(cargo run --quiet --locked --package bump-version -- "$current" "$bump_level")" \
+    || die "cannot compute the next version from '$current'"
+  tag="v$next"
+  if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
+    die "tag $tag already exists locally or on $REMOTE; the version in $WORKSPACE_MANIFEST is behind the latest release"
+  fi
+
+  escaped_current="${current//./\\.}"
+  # Until the release commit exists, any exit restores the manifest and lock file, so a rerun starts from a clean tree.
+  trap 'git checkout HEAD -- "$WORKSPACE_MANIFEST" "$LOCK_FILE"' EXIT
+  run sed -i "s/^version = \"$escaped_current\"\$/version = \"$next\"/" "$WORKSPACE_MANIFEST"
+  run cargo update --workspace
+
+  if (( dry_run == 0 )); then
+    local bumped_version changed_files expected_changes
+    # git status --porcelain sorts paths, so the lock file comes first.
+    expected_changes=" M $LOCK_FILE"$'\n'" M $WORKSPACE_MANIFEST"
+    bumped_version="$(read_workspace_version)"
+    changed_files="$(git status --porcelain)"
+    if [[ "$bumped_version" != "$next" || "$changed_files" != "$expected_changes" ]]; then
+      die "the version bump must change only $WORKSPACE_MANIFEST and $LOCK_FILE; git status shows: $changed_files"
+    fi
+  fi
+
+  run git add -- "$WORKSPACE_MANIFEST" "$LOCK_FILE"
+  if ! run git commit -m "chore(release): $tag"; then
+    die "the release commit failed (the pre-commit hook runs just audit, which needs network access); the version bump was reverted"
+  fi
+  trap - EXIT
+  run git tag --annotate "$tag" --message "Release $tag"
+  if ! run git push --atomic "$REMOTE" "$REQUIRED_BRANCH" "refs/tags/$tag"; then
+    die "push to $REMOTE failed; the release commit and tag $tag exist locally only. Fix the access to $REMOTE, then run scripts/deploy.sh prod --no-bump"
+  fi
+  VERSION="$next"
+}
+
+# Pushes an existing release (the branch and its local tag) without bumping, committing or tagging.
+push_pending() {
+  VERSION="$(read_workspace_version)"
+  local tag="v$VERSION"
+  local -a push_refs=("$REQUIRED_BRANCH")
+  if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
+    push_refs+=("refs/tags/$tag")
+  fi
+  if ! run git push --atomic "$REMOTE" "${push_refs[@]}"; then
+    die "push to $REMOTE failed; nothing was deployed"
   fi
 }
 
 main() {
-  if (( $# < 1 || $# > 2 )); then
-    die "$USAGE"
-  fi
-  if (( $# == 2 )); then
-    if [[ "$2" != "--dry-run" ]]; then
-      die "$USAGE"
-    fi
-    dry_run=1
-  fi
-
+  (( $# >= 1 )) || die "$USAGE"
   resolve_target "$1"
-  COMMIT_SHA="$(git rev-parse --short HEAD)"
+  shift
+  parse_options "$@"
 
   check_branch
   check_clean_tree
   check_trunk
+  if [[ "$TARGET" == prod ]]; then
+    check_origin
+  fi
   run_checks
+
+  if [[ "$TARGET" != prod ]]; then
+    VERSION="$(read_workspace_version)"
+  elif (( no_bump )); then
+    push_pending
+  else
+    release
+  fi
+  COMMIT_SHA="$(git rev-parse --short HEAD)"
 
   build_app
   if (( dry_run == 0 )); then

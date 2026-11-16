@@ -6,6 +6,7 @@ use leptos::prelude::*;
 
 pub mod done;
 pub mod editor;
+pub mod home;
 pub mod icons;
 pub mod session;
 pub mod timer_list;

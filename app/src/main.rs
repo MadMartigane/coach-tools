@@ -1,12 +1,14 @@
 mod platform;
 mod state;
 mod ui;
+mod version;
 
 use leptos::prelude::*;
 
 use state::{AppContext, Screen};
 use ui::done::DoneScreen;
 use ui::editor::EditorScreen;
+use ui::home::HomeScreen;
 use ui::session::SessionScreen;
 use ui::timer_list::TimerListScreen;
 
@@ -21,6 +23,7 @@ fn App() -> impl IntoView {
     provide_context(ctx.clone());
 
     move || match ctx.screen.get() {
+        Screen::Home => view! { <HomeScreen /> }.into_any(),
         Screen::TimerList => view! { <TimerListScreen /> }.into_any(),
         Screen::Editor { index, draft } => {
             view! { <EditorScreen index=index initial=draft /> }.into_any()

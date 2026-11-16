@@ -1,6 +1,6 @@
 # coach-tools
 
-A small web application that groups the tools and utilities a sports coach uses.
+A small web application that groups the tools and utilities a sports coach uses. It opens on a home page where each tool is a tile with its icon and title. It installs as one Progressive Web App named coach-tools, with a whistle icon.
 
 ## Tools
 
@@ -34,11 +34,11 @@ Install these tools per user. They need no `sudo`.
 
 ## Status
 
-TABATA TIMER is implemented. It runs offline in the browser once the app has been loaded once.
+The coach-tools home page and TABATA TIMER, its only tool, are implemented. The app runs offline in the browser once it has been loaded once.
 
 ## Branches
 
-- `main`: stable branch.
+- `main`: stable branch. It also receives the release commits `chore(release): vX.Y.Z` that the production deploy creates, tags and pushes; after each production deploy, open a pull request `main` -> `develop` (the deploy prints its link). Never edit the version in `Cargo.toml` by hand.
 - `develop`: integration branch. Small changes are committed here directly.
 - `feat/<name>`: branch for an important feature, merged into `develop`.
 
@@ -56,4 +56,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Deployment
 
-The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes.
+The deploy scripts run on the production machine only. See [docs/deploy.md](docs/deploy.md) for the first-time setup and the `just prod` and `just pre-prod` recipes. `just prod` bumps the SemVer version (patch by default), commits, tags and pushes it to GitHub before publishing, and the home screen shows the version.
