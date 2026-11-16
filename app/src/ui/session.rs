@@ -1,5 +1,5 @@
 //! The session screen: the timer stopped on the ready screen until the hero
-//! Démarrer starts it, then the countdown of the current phase, the hero
+//! Start starts it, then the countdown of the current phase, the hero
 //! Pause/Resume and two-tap Stop controls, and the progress strip.
 
 use std::cell::RefCell;
@@ -9,10 +9,10 @@ use std::time::Duration;
 use leptos::prelude::*;
 use timer_core::{
     Phase, PhaseKind, PhaseView, Session, SessionState, Timer, format_duration, format_mm_ss,
-    phase_label,
 };
 use web_sys::VisibilityState;
 
+use crate::locale::{Locale, phase_label};
 use crate::platform::audio::SoundPlayer;
 use crate::platform::clock::BrowserClock;
 use crate::platform::theme::{
@@ -24,12 +24,6 @@ use crate::ui::icons::{IconPause, IconPlay, IconSquare, LogoMark};
 
 /// How often the session is sampled, so cues and the countdown stay current.
 const TICK_INTERVAL_MILLIS: u64 = 250;
-
-/// Phase title shown while the session is paused.
-const PAUSED_PHASE_TITLE: &str = "PAUSE";
-
-/// Phase title shown before the user starts the session.
-const READY_PHASE_TITLE: &str = "PRÊT";
 
 /// The cycle number shown during the preparation, which precedes cycle 1.
 const FIRST_CYCLE: u32 = 1;
@@ -43,14 +37,14 @@ struct SessionSignals {
     remaining_total: RwSignal<u64>,
 }
 
-/// Shows `timer` stopped on the ready screen; the hero Démarrer button runs it.
+/// Shows `timer` stopped on the ready screen; the hero Start button runs it.
 #[component]
 pub fn SessionScreen(timer: Timer) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
     let session = Rc::new(RefCell::new(
         Session::new(&timer, BrowserClock::new()).expect("saved timers are validated on load"),
     ));
-    // The session stays frozen at zero until the user taps Démarrer.
+    // The session stays frozen at zero until the user taps Start.
     session.borrow_mut().pause();
     let phases: Vec<Phase> = session.borrow().timeline().phases().to_vec();
     let total_duration = timer.total_duration();
@@ -89,7 +83,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
     if advance(&session, &ctx.sound, signals) == SessionState::Finished {
         ctx.finish_session(timer.clone(), 0);
     } else {
-        // The ready screen keeps the shell theme; the Démarrer tap starts the
+        // The ready screen keeps the shell theme; the Start tap starts the
         // clocks and the session takes the phase colours from there.
         set_theme_color(THEME_BG);
     }
@@ -169,8 +163,15 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
         set_theme_color(THEME_BG);
     });
 
-    let phase_title_text =
-        move || phase_title(started.get(), signals.state.get(), signals.phase_view.get());
+    let locale = ctx.locale;
+    let phase_title_text = move || {
+        phase_title(
+            locale.get(),
+            started.get(),
+            signals.state.get(),
+            signals.phase_view.get(),
+        )
+    };
     let phase_remaining = move || signals.phase_view.get().map_or(0, |view| view.remaining);
     let set_number = move || signals.phase_view.get().map_or(sets, |view| view.set);
     let cycle_number = move || current_cycle(signals.phase_view.get(), cycles_per_set);
@@ -195,7 +196,7 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
                 <div class="session-controls">
                     <button type="button" class="btn-phase-hero" on:click=hero_click>
                         {move || {
-                            let text = hero_text(started.get(), signals.state.get());
+                            let text = hero_text(locale.get(), started.get(), signals.state.get());
                             if started.get() && signals.state.get() != SessionState::Paused {
                                 view! { <IconPause /><span>{text}</span> }.into_any()
                             } else {
@@ -205,10 +206,11 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
                     </button>
                     <button type="button" class="btn-phase-secondary" on:click=stop>
                         {move || {
+                            let catalog = locale.get().catalog();
                             if confirm_stop.get() {
-                                view! { <IconSquare /><span>"Confirmer l'arrêt"</span> }.into_any()
+                                view! { <IconSquare /><span>{catalog.confirm_stop}</span> }.into_any()
                             } else {
-                                view! { <IconSquare /><span>"Arrêter"</span> }.into_any()
+                                view! { <IconSquare /><span>{catalog.stop}</span> }.into_any()
                             }
                         }}
                     </button>
@@ -230,15 +232,15 @@ pub fn SessionScreen(timer: Timer) -> impl IntoView {
                 <div class="progress-row-bottom">
                     <div>
                         <p class="progress-metric-value">{move || format_duration(signals.elapsed.get())}</p>
-                        <p class="progress-metric-label">"Écoulé"</p>
+                        <p class="progress-metric-label">{move || locale.get().catalog().elapsed}</p>
                     </div>
                     <div>
                         <p class="progress-metric-value">{format_duration(total_duration)}</p>
-                        <p class="progress-metric-label">"Total"</p>
+                        <p class="progress-metric-label">{move || locale.get().catalog().total}</p>
                     </div>
                     <div>
                         <p class="progress-metric-value">{move || format_duration(signals.remaining_total.get())}</p>
-                        <p class="progress-metric-label">"Restant"</p>
+                        <p class="progress-metric-label">{move || locale.get().catalog().remaining}</p>
                     </div>
                 </div>
             </footer>
@@ -287,27 +289,33 @@ fn screen_class(started: bool, state: SessionState, phase: Option<PhaseView>) ->
     }
 }
 
-/// The title above the countdown: `PRÊT` before the start, the phase name
-/// while running, `PAUSE` while paused.
-fn phase_title(started: bool, state: SessionState, phase: Option<PhaseView>) -> &'static str {
+/// The title above the countdown: `ready_title` before the start, the phase
+/// name while running, `paused_title` while paused.
+fn phase_title(
+    locale: Locale,
+    started: bool,
+    state: SessionState,
+    phase: Option<PhaseView>,
+) -> &'static str {
     if !started {
-        return READY_PHASE_TITLE;
+        return locale.catalog().ready_title;
     }
     match state {
-        SessionState::Paused => PAUSED_PHASE_TITLE,
-        _ => phase.map_or("", |view| phase_label(view.kind)),
+        SessionState::Paused => locale.catalog().paused_title,
+        _ => phase.map_or("", |view| phase_label(locale, view.kind)),
     }
 }
 
-/// The text of the hero button: `Démarrer` before the start, then `Pause`
-/// while running and `Reprendre` while paused.
-fn hero_text(started: bool, state: SessionState) -> &'static str {
+/// The text of the hero button: `start` before the start, then `pause`
+/// while running and `resume` while paused.
+fn hero_text(locale: Locale, started: bool, state: SessionState) -> &'static str {
+    let catalog = locale.catalog();
     if !started {
-        "Démarrer"
+        catalog.start
     } else if state == SessionState::Paused {
-        "Reprendre"
+        catalog.resume
     } else {
-        "Pause"
+        catalog.pause
     }
 }
 
@@ -370,6 +378,7 @@ fn progress_marker_style(phases: &[Phase], elapsed: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::locale::{ENGLISH_CODE, FRENCH_CODE, locale_from_code};
 
     /// A 20 s work phase followed by a 10 s rest phase, 30 s in total.
     fn work_then_rest_phases() -> [Phase; 2] {
@@ -432,9 +441,19 @@ mod tests {
     }
 
     #[test]
-    fn ready_screen_shows_demarrer_and_the_neutral_shell() {
-        assert_eq!(hero_text(false, SessionState::Paused), "Démarrer");
-        assert_eq!(phase_title(false, SessionState::Paused, None), "PRÊT");
+    fn ready_screen_shows_start_and_the_neutral_shell() {
+        let french = locale_from_code(FRENCH_CODE).expect("French code is a known locale code");
+        let english = locale_from_code(ENGLISH_CODE).expect("English code is a known locale code");
+        assert_eq!(hero_text(french, false, SessionState::Paused), "Démarrer");
+        assert_eq!(
+            phase_title(french, false, SessionState::Paused, None),
+            "PRÊT"
+        );
+        assert_eq!(hero_text(english, false, SessionState::Paused), "Start");
+        assert_eq!(
+            phase_title(english, false, SessionState::Paused, None),
+            "READY"
+        );
         assert_eq!(
             screen_class(false, SessionState::Paused, None),
             "session-screen phase-ready"
@@ -442,13 +461,44 @@ mod tests {
     }
 
     #[test]
-    fn started_screen_switches_between_pause_and_reprendre() {
-        assert_eq!(hero_text(true, SessionState::Running), "Pause");
-        assert_eq!(hero_text(true, SessionState::Paused), "Reprendre");
-        assert_eq!(phase_title(true, SessionState::Paused, None), "PAUSE");
+    fn started_screen_switches_between_pause_and_resume() {
+        let french = locale_from_code(FRENCH_CODE).expect("French code is a known locale code");
+        let english = locale_from_code(ENGLISH_CODE).expect("English code is a known locale code");
+        assert_eq!(hero_text(french, true, SessionState::Running), "Pause");
+        assert_eq!(hero_text(french, true, SessionState::Paused), "Reprendre");
+        assert_eq!(
+            phase_title(french, true, SessionState::Paused, None),
+            "PAUSE"
+        );
+        assert_eq!(hero_text(english, true, SessionState::Running), "Pause");
+        assert_eq!(hero_text(english, true, SessionState::Paused), "Resume");
+        assert_eq!(
+            phase_title(english, true, SessionState::Paused, None),
+            "PAUSED"
+        );
         assert_eq!(
             screen_class(true, SessionState::Paused, None),
             "session-screen phase-paused"
+        );
+    }
+
+    #[test]
+    fn running_screen_shows_the_phase_label() {
+        let french = locale_from_code(FRENCH_CODE).expect("French code is a known locale code");
+        let english = locale_from_code(ENGLISH_CODE).expect("English code is a known locale code");
+        let rest_between_sets = Some(PhaseView {
+            kind: PhaseKind::RestBetweenSets,
+            remaining: 5,
+            set: 1,
+            cycle: None,
+        });
+        assert_eq!(
+            phase_title(french, true, SessionState::Running, rest_between_sets),
+            "Repos entre sets"
+        );
+        assert_eq!(
+            phase_title(english, true, SessionState::Running, rest_between_sets),
+            "Rest between sets"
         );
     }
 }

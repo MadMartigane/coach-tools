@@ -21,6 +21,11 @@
   </head>
   <body>
     <script>
+      const localeStorageKey = "coach-tools.locale";
+      const updateBannerText = {
+        fr: { message: "Nouvelle version disponible — ", reload: "Recharger" },
+        en: { message: "New version available — ", reload: "Reload" },
+      };
       const updateBannerId = "update-banner";
       const updateBannerStyles = `
         #update-banner { position: fixed; left: 0; right: 0; bottom: 0; text-align: center; padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--color-surface); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-sm); }
@@ -28,10 +33,26 @@
         #update-banner button:focus-visible { outline: var(--focus-ring-width) solid var(--color-focus); outline-offset: var(--focus-ring-offset); }
       `;
 
+      function currentLocale() {
+        try {
+          const storedLocale = window.localStorage.getItem(localeStorageKey);
+          if (storedLocale === "fr" || storedLocale === "en") {
+            return storedLocale;
+          }
+        } catch {
+          // Storage can be unavailable (private mode, disabled storage); fall back to the browser language.
+        }
+        return (navigator.language || "").split("-")[0].toLowerCase() === "en" ? "en" : "fr";
+      }
+
+      document.documentElement.lang = currentLocale();
+
       function showUpdateBanner() {
         if (document.getElementById(updateBannerId) !== null) {
           return;
         }
+
+        const text = updateBannerText[currentLocale()];
 
         const styles = document.createElement("style");
         styles.textContent = updateBannerStyles;
@@ -42,11 +63,11 @@
         banner.setAttribute("role", "status");
 
         const message = document.createElement("span");
-        message.textContent = "Nouvelle version disponible — ";
+        message.textContent = text.message;
 
         const reloadButton = document.createElement("button");
         reloadButton.type = "button";
-        reloadButton.textContent = "Recharger";
+        reloadButton.textContent = text.reload;
         reloadButton.addEventListener("click", () => window.location.reload());
 
         banner.append(message, reloadButton);

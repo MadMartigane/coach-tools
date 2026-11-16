@@ -1,9 +1,10 @@
 //! The Tabata timer list, opened from the home tile: the saved timers, one tap from
-//! their stopped session screen; the Démarrer button launches the session.
+//! their stopped session screen; the Start button launches the session.
 
 use leptos::prelude::*;
-use timer_core::{Timer, format_timer_summary};
+use timer_core::Timer;
 
+use crate::locale::timer_summary;
 use crate::state::AppContext;
 use crate::ui::icons::{IconChevronLeft, IconPencil, IconPlus, LogoMark};
 
@@ -12,11 +13,12 @@ use crate::ui::icons::{IconChevronLeft, IconPencil, IconPlus, LogoMark};
 pub fn TimerListScreen() -> impl IntoView {
     let ctx = expect_context::<AppContext>();
     let timers = ctx.timers;
+    let locale = ctx.locale;
 
     view! {
         <main class="screen-neutral">
             <header class="screen-header screen-header-start">
-                <button type="button" class="btn-icon" aria-label="Retour à l'accueil" on:click=move |_| ctx.open_home()>
+                <button type="button" class="btn-icon" aria-label=move || locale.get().catalog().back_to_home on:click=move |_| ctx.open_home()>
                     <IconChevronLeft />
                 </button>
                 <h1 class="brand-title">
@@ -36,9 +38,10 @@ pub fn TimerListScreen() -> impl IntoView {
 }
 
 fn empty_state() -> impl IntoView {
+    let locale = expect_context::<AppContext>().locale;
     view! {
         <div class="empty-state">
-            <p class="empty-state-text">"Aucun timer enregistré."</p>
+            <p class="empty-state-text">{move || locale.get().catalog().no_saved_timers}</p>
             {new_timer_button()}
         </div>
     }
@@ -61,7 +64,9 @@ fn timer_list(timers: RwSignal<Vec<Timer>>) -> impl IntoView {
 
 fn timer_row(index: usize, timer: Timer) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
-    let summary = format_timer_summary(&timer);
+    let locale = ctx.locale;
+    let summary_timer = timer.clone();
+    let summary = move || timer_summary(locale.get(), &summary_timer);
     let session_timer = timer.clone();
     let edit_ctx = ctx.clone();
     view! {
@@ -84,7 +89,7 @@ fn timer_row(index: usize, timer: Timer) -> impl IntoView {
                 on:click=move |_| edit_ctx.open_edit_editor(index)
             >
                 <IconPencil />
-                <span>"Modifier"</span>
+                <span>{move || locale.get().catalog().edit}</span>
             </button>
         </li>
     }
@@ -92,6 +97,7 @@ fn timer_row(index: usize, timer: Timer) -> impl IntoView {
 
 fn new_timer_button() -> impl IntoView {
     let ctx = expect_context::<AppContext>();
+    let locale = ctx.locale;
     view! {
         <button
             type="button"
@@ -99,7 +105,7 @@ fn new_timer_button() -> impl IntoView {
             on:click=move |_| ctx.open_new_editor()
         >
             <IconPlus />
-            <span>"Nouveau timer"</span>
+            <span>{move || locale.get().catalog().new_timer}</span>
         </button>
     }
 }

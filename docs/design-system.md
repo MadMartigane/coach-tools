@@ -8,6 +8,8 @@ then use it. Tokens are defined once, in `:root`, in one tokens stylesheet.
 Every rule below is checkable by a human in under one minute, with browser
 DevTools and the WebAIM contrast checker (https://webaim.org/resources/contrastchecker/).
 
+**Copy and languages.** The UI exists in French (default) and English. The labels quoted in this document are the French copy. Every visible string has both versions in one of two catalogues: the `FRENCH` and `ENGLISH` tables of `app/src/locale.rs` for the app, and `updateBannerText` in `app/index.html` for the update banner, which an inline script shows before the wasm loads. Both files define the storage key `coach-tools.locale` and the language codes `fr` and `en`; change them in both places. `coach-tools`, `TABATA TIMER`, `Set n/m` and `Cycle x/y` are never translated.
+
 ## 1. Colour tokens
 
 ### Neutrals (dark theme — the only theme)
@@ -188,6 +190,12 @@ gesture that unlocks the sound and acquires the wake lock.
 - Content: the tool mark at `--size-tile-icon` above the tool title (`--text-md`, 700, `--color-text`, centred, wrapping onto two lines when needed), gap `--space-3`; pressed and focus follow the neutral-screen button rules.
 - Way back: a tool's root screen has a back chevron (`aria-label` "Retour à l'accueil") that returns to the home screen; the tool's inner screens return to the tool's root screen, never to the home screen.
 
+### Language selector
+
+- Control: a native `<select>` with class `.lang-select` at the end of the home header, named by `aria-label` "Langue" (French) or "Language" (English). Two options, each written in its own language: `Français` (`lang="fr"`, value `fr`), then `English` (`lang="en"`, value `en`).
+- Style: minimum height `--size-icon`, horizontal padding `--space-3`, fill `--color-surface-raised`, a decorative `--border-thin` `--color-border` border, radius `--radius-md`, text `--text-sm` 700 `--color-text`. The focus ring follows the neutral-screen rule.
+- Behaviour: the choice applies at once on every screen and is remembered on the device. With no stored choice, the app follows the browser language when it is English and uses French otherwise.
+
 ### Icons and logo
 
 - Icons: Lucide (ISC licence), inline SVG components in `src/ui/icons.rs`,
@@ -208,7 +216,7 @@ gesture that unlocks the sound and acquires the wake lock.
 
 ## 6. Layout rules
 
-- The home screen is the first screen of the app, a neutral screen (`.screen-neutral`) holding a header (app mark at `--size-logo-mark`, then the title `coach-tools` in `--text-lg` 700), the tool grid of "Home tiles" and the version line, nothing else. The version line reads `vX.Y.Z` in production and `vX.Y.Z+<short sha>` in pre-production; it uses `--text-sm`, `--color-text-muted` (8.4:1 on `--color-bg`) and tabular-nums, is centred, and sits at the bottom of the screen (top margin `auto` in the `.screen-neutral` column). It scrolls normally when the tiles exceed the height; with one tile, the screen, version line included, fits 360x640 and 932x430 without scrolling.
+- The home screen is the first screen of the app, a neutral screen (`.screen-neutral`) holding a header (app mark at `--size-logo-mark`, then the title `coach-tools` in `--text-lg` 700, and the language selector at its end), the tool grid of "Home tiles" and the version line, nothing else. The version line reads `vX.Y.Z` in production and `vX.Y.Z+<short sha>` in pre-production; it uses `--text-sm`, `--color-text-muted` (8.4:1 on `--color-bg`) and tabular-nums, is centred, and sits at the bottom of the screen (top margin `auto` in the `.screen-neutral` column). It scrolls normally when the tiles exceed the height; with one tile, the screen, version line included, fits 360x640 and 932x430 without scrolling.
 - A tool's root screen (the Tabata timer list) has a header with the back chevron, the tool mark at `--size-logo-mark` and the tool title.
 - Portrait session screen is a fixed-height column: header (logo mark small,
   timer name, `Set n/m` chip) / countdown zone / controls / progress strip.
@@ -222,7 +230,7 @@ gesture that unlocks the sound and acquires the wake lock.
 - Ready and Terminé screens reuse the session column structure on
   `--color-bg` and `--phase-done-bg`.
 - Verification matrix: portrait 360x640, 360x800, 390x844, 430x932;
-  landscape 568x320, 844x390, 932x430.
+  landscape 568x320, 844x390, 932x430. Run the matrix in French and in English.
 
 ## 7. Do and don't
 
@@ -263,6 +271,7 @@ Don't:
 10. Destructive and session-ending flows still require two taps.
 11. Numeric displays use tabular-nums: no width jitter from 9 to 10.
 12. The change introduces no new screen structure outside section 6.
+13. Every changed screen checked in French and in English at 360x640 portrait and 932x430 landscape: no overflow and no clipped label.
 
 ## 9. Signaux sonores
 

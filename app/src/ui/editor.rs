@@ -19,6 +19,7 @@ const MIN_COUNT: u32 = 1;
 #[component]
 pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
     let ctx = expect_context::<AppContext>();
+    let locale = ctx.locale;
 
     let name = RwSignal::new(initial.name);
     let preparation = RwSignal::new(initial.preparation);
@@ -85,13 +86,16 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                 <button
                     type="button"
                     class="btn-icon"
-                    aria-label="Retour"
+                    aria-label=move || locale.get().catalog().back
                     on:click=move |_| back_ctx.exit_to_list()
                 >
                     <IconChevronLeft />
                 </button>
                 <h1 class="brand-title">
-                    {move || if index.is_none() { "Nouveau timer" } else { "Modifier le timer" }}
+                    {move || {
+                        let catalog = locale.get().catalog();
+                        if index.is_none() { catalog.new_timer } else { catalog.edit_timer }
+                    }}
                 </h1>
                 <span class="session-chip">{total_label}</span>
             </header>
@@ -100,22 +104,50 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                     <input
                         class="text-input"
                         type="text"
-                        placeholder="Nom du timer"
+                        placeholder=move || locale.get().catalog().timer_name
                         prop:value=move || name.get()
                         on:input=move |event| name.set(event_target_value(&event))
                     />
                     <Show when=move || validation.get() == Err(InvalidTimer::EmptyName)>
-                        <p class="validation-msg">"Le nom est requis"</p>
+                        <p class="validation-msg">{move || locale.get().catalog().name_required}</p>
                     </Show>
                 </div>
                 <div class="field-card">
-                    <DurationStepper label="Préparation (s)" value=preparation min=MIN_DURATION_SECONDS />
-                    <DurationStepper label="Travail (s)" value=work min=MIN_DURATION_SECONDS />
-                    <DurationStepper label="Repos (s)" value=rest min=MIN_DURATION_SECONDS />
-                    <DurationStepper label="Cycles par set" value=cycles_per_set min=MIN_COUNT />
-                    <DurationStepper label="Sets" value=sets min=MIN_COUNT />
-                    <DurationStepper label="Repos entre sets (s)" value=rest_between_sets min=MIN_DURATION_SECONDS />
-                    <DurationStepper label="Retour au calme (s)" value=cool_down min=MIN_DURATION_SECONDS />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().preparation_seconds)
+                        value=preparation
+                        min=MIN_DURATION_SECONDS
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().work_seconds)
+                        value=work
+                        min=MIN_DURATION_SECONDS
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().rest_seconds)
+                        value=rest
+                        min=MIN_DURATION_SECONDS
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().cycles_per_set)
+                        value=cycles_per_set
+                        min=MIN_COUNT
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().sets)
+                        value=sets
+                        min=MIN_COUNT
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().rest_between_sets_seconds)
+                        value=rest_between_sets
+                        min=MIN_DURATION_SECONDS
+                    />
+                    <DurationStepper
+                        label=Signal::derive(move || locale.get().catalog().cool_down_seconds)
+                        value=cool_down
+                        min=MIN_DURATION_SECONDS
+                    />
                 </div>
                 <div class="editor-actions">
                     <button
@@ -126,7 +158,7 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                         on:click=save
                     >
                         <IconCheck />
-                        <span>"Enregistrer"</span>
+                        <span>{move || locale.get().catalog().save}</span>
                     </button>
                     <button
                         type="button"
@@ -136,7 +168,7 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                         on:click=start
                     >
                         <IconPlay />
-                        <span>"Démarrer"</span>
+                        <span>{move || locale.get().catalog().start}</span>
                     </button>
                     {index.map(|_| {
                         view! {
@@ -147,7 +179,10 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
                             >
                                 <IconTrash />
                                 <span>
-                                    {move || if confirm_delete.get() { "Confirmer la suppression" } else { "Supprimer" }}
+                                    {move || {
+                                        let catalog = locale.get().catalog();
+                                        if confirm_delete.get() { catalog.confirm_delete } else { catalog.delete }
+                                    }}
                                 </span>
                             </button>
                         }
@@ -161,15 +196,16 @@ pub fn EditorScreen(index: Option<usize>, initial: Timer) -> impl IntoView {
 /// One labelled duration or count, edited with a minus button, a typed value
 /// and a plus button. The value never drops below `min`.
 #[component]
-fn DurationStepper(label: &'static str, value: RwSignal<u32>, min: u32) -> impl IntoView {
+fn DurationStepper(label: Signal<&'static str>, value: RwSignal<u32>, min: u32) -> impl IntoView {
+    let locale = expect_context::<AppContext>().locale;
     view! {
         <div class="field-row">
-            <span class="field-label">{label}</span>
+            <span class="field-label">{move || label.get()}</span>
             <div class="stepper">
                 <button
                     type="button"
                     class="stepper-btn"
-                    aria-label="Diminuer"
+                    aria-label=move || locale.get().catalog().decrease
                     on:click=move |_| value.update(|current| *current = current.saturating_sub(1).max(min))
                 >
                     <IconMinus />
@@ -178,7 +214,7 @@ fn DurationStepper(label: &'static str, value: RwSignal<u32>, min: u32) -> impl 
                     type="number"
                     inputmode="numeric"
                     class="stepper-value text-input"
-                    aria-label=label
+                    aria-label=move || label.get()
                     min=min
                     prop:value=move || value.get().to_string()
                     on:input=move |event| {
@@ -190,7 +226,7 @@ fn DurationStepper(label: &'static str, value: RwSignal<u32>, min: u32) -> impl 
                 <button
                     type="button"
                     class="stepper-btn"
-                    aria-label="Augmenter"
+                    aria-label=move || locale.get().catalog().increase
                     on:click=move |_| value.update(|current| *current = current.saturating_add(1))
                 >
                     <IconPlus />
